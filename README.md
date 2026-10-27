@@ -80,12 +80,36 @@ does not count provider calls, it forbids them: if the mandate check ever moved
 to after the call, the demo would not run slower, it would break and name the
 fault.
 
+### Scene C — the register rewritten, and the verifier naming the line
+
+The only scene where the product has to fail in order to succeed. Two decisions
+are recorded, the register declares itself intact, then one line is rewritten
+**directly in the file** — not through this library, because nobody covering
+their tracks uses the API built for it.
+
+```
+  Avant               intact : 2 enregistrement(s) re-chaînés
+
+  On réécrit le registre comme le ferait quelqu'un qui couvre
+  ses traces — en éditant le fichier, pas en appelant la bibliothèque :
+      enregistrement 1, montant 6,40 -> 0,01
+
+  Après               ROMPU
+      enregistrement 1 a été modifié depuis son écriture
+```
+
+A verifier that answered "the log is fine" here would prove nothing. And
+recomputing the fingerprint does not save the forger: the next record carries
+the previous one's, so it is the next record that denounces the substitution.
+That claim is not decoration — `test_un_faussaire_qui_recalcule_l_empreinte_est_quand_meme_pris`
+holds it down.
+
 ## Running it
 
 ```bash
 python -m mandat.demo                    # both scenes, onto runs/demo.jsonl
 pip install -r requirements.txt          # pytest, for the tests
-python -m pytest tests -q                # 82 tests
+python -m pytest tests -q                # 86 tests
 ```
 
 **There are no runtime dependencies.** The mandate, the gateway, the register

@@ -11,6 +11,8 @@ l'appel au fournisseur.
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Callable
 
 from .mandat import Mandat, Porte, euros
@@ -43,6 +45,68 @@ class FournisseurInterdit:
             "le mandat a été vérifié après l'appel au lieu d'avant, "
             "et ce n'est donc plus un plafond"
         )
+
+
+def scene_falsification(
+    *,
+    registre: Registre,
+    fournisseur: Fournisseur,
+    ecrire: Callable[[str], Any] = print,
+) -> dict[str, list[str]]:
+    """La seule scène où le produit doit échouer pour réussir.
+
+    Deux décisions sont inscrites, le registre se déclare intact, puis une ligne
+    est réécrite **directement dans le fichier** — pas via cette bibliothèque,
+    parce que personne qui couvre ses traces n'emprunte l'API prévue pour ça.
+    Le vérificateur ne doit pas répondre « le journal est correct » : il doit
+    nommer la ligne.
+    """
+    porte = _porte_de_demonstration()
+    passerelle = Passerelle(porte, registre, fournisseur)
+
+    passerelle.payer(fonder(
+        Proposition.extraite(quoi="Ramette A4, 500 feuilles", montant="6.40",
+                             devise="EUR", marchand="Libraire du coin",
+                             preuves=("page-libraire",)),
+        [PAGE_LUE]))
+    passerelle.payer(fonder(
+        Proposition.extraite(quoi="Imprimante laser reconditionnée", montant="89.90",
+                             devise="EUR", marchand="Libraire du coin",
+                             preuves=("page-libraire",)),
+        [PAGE_LUE]))
+
+    avant = registre.verifier()
+
+    chemin = Path(registre.chemin)
+    lignes = chemin.read_text(encoding="utf-8").splitlines()
+    corps = json.loads(lignes[0])
+    montant_avant = corps["intention"]["centimes"]
+    corps["intention"]["centimes"] = 1
+    lignes[0] = json.dumps(corps, ensure_ascii=False, sort_keys=True,
+                           separators=(",", ":"))
+    chemin.write_text("\n".join(lignes) + "\n", encoding="utf-8")
+
+    apres = registre.verifier()
+
+    ecrire("== Scène C " + "=" * 56)
+    ecrire("")
+    ecrire(f"  Avant               {'intact' if not avant else 'ROMPU'} :"
+           f" {len(lignes)} enregistrement(s) re-chaînés")
+    ecrire("")
+    ecrire("  On réécrit le registre comme le ferait quelqu'un qui couvre")
+    ecrire("  ses traces — en éditant le fichier, pas en appelant la bibliothèque :")
+    ecrire(f"      enregistrement 1, montant {euros(montant_avant)} -> {euros(1)}")
+    ecrire("")
+    ecrire(f"  Après               {'intact' if not apres else 'ROMPU'}")
+    for probleme in apres:
+        ecrire(f"      {probleme}")
+    ecrire("")
+    ecrire("  Le vérificateur ne déclare pas le journal correct : il nomme la ligne.")
+    ecrire("  Et recalculer l'empreinte ne sauverait pas le faussaire : le")
+    ecrire("  suivant porte celle d'avant, et c'est lui qui dénoncerait la")
+    ecrire("  substitution. Il faudrait réécrire toute la suite.")
+
+    return {"avant": avant, "apres": apres}
 
 
 def _porte_de_demonstration() -> Porte:
@@ -190,29 +254,52 @@ def scene_refus(
     return enregistrement
 
 
+def jouer(
+    *,
+    registre: Registre,
+    fournisseur: Fournisseur,
+    ecrire: Callable[[str], Any] = print,
+) -> None:
+    """Les trois scenes, dans l'ordre de la video.
+
+    Ca marche, ca refuse, et on ne peut pas reecrire l'histoire. L'ordre est un
+    crescendo : la scene C ne vaut que si l'on a d'abord vu ce qu'elle protege.
+
+    **Cette fonction existe parce que le cablage a casse deux fois.** Les trois
+    scenes etaient vertes et `python -m mandat.demo` plantait, parce que le
+    point d'entree donnait a la scene C un fournisseur interdit alors qu'elle
+    paie reellement. Un enchainement qui n'est pas appelable depuis un test
+    n'est pas verifie.
+    """
+    scene_chaine(registre=registre, fournisseur=fournisseur, ecrire=ecrire)
+    ecrire("")
+    scene_refus(registre=registre, fournisseur=fournisseur, ecrire=ecrire)
+    ecrire("")
+    # La scene C reecrit son registre : elle travaille donc sur le sien, pour ne
+    # pas rompre la chaine que les deux premieres viennent de construire.
+    scene_falsification(
+        registre=Registre(Path(registre.chemin).with_suffix(".falsifie.jsonl")),
+        fournisseur=fournisseur,
+        ecrire=ecrire,
+    )
+
+
 if __name__ == "__main__":  # pragma: no cover
-    # Câblage seulement : aucune règle ici, donc rien à couvrir. L'ordre est
-    # celui de la vidéo — on montre d'abord que le produit paie, puis qu'il
-    # refuse. Le refus en dernier, parce que c'est lui qu'on retient.
     import sys
-    from pathlib import Path
 
     from .paypal import PayPal
 
     chemin = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("runs/demo.jsonl")
-    registre = Registre(chemin)
 
     try:
         fournisseur = PayPal.depuis_env()
     except Exception as pourquoi:
-        print("== Scène A non jouée " + "=" * 47)
-        print(f"  Pas d'accès au bac à sable PayPal : {pourquoi}")
-        print("  La scène A crée une vraie commande ; sans identifiants elle n'a")
-        print("  rien à montrer. La scène B, elle, tourne partout — un refus")
-        print("  n'appelle personne, et c'est précisément ce qu'elle démontre.")
+        print("== Scenes A et C non jouees " + "=" * 40)
+        print(f"  Pas d'acces au bac a sable PayPal : {pourquoi}")
+        print("  Les scenes A et C inscrivent un vrai paiement ; sans identifiants")
+        print("  elles n'ont rien a montrer. La scene B, elle, tourne partout : un")
+        print("  refus n'appelle personne, et c'est precisement ce qu'elle demontre.")
         print()
+        scene_refus(registre=Registre(chemin), fournisseur=FournisseurInterdit())
     else:
-        scene_chaine(registre=registre, fournisseur=fournisseur)
-        print()
-
-    scene_refus(registre=registre, fournisseur=FournisseurInterdit())
+        jouer(registre=Registre(chemin), fournisseur=fournisseur)

@@ -17,7 +17,7 @@ import json
 
 import pytest
 
-from mandat.registre import HorsRegistre, Registre
+from mandat.registre import _CORPS, HorsRegistre, Registre, _empreinte
 
 QUAND = "2026-11-02T10:00:00Z"
 
@@ -170,3 +170,36 @@ def test_un_refus_ne_compte_pas_comme_une_transaction_connue(tmp_path):
 def test_un_registre_vide_declare_tout_hors_route(tmp_path):
     assert registre(tmp_path).sorties_de_route(["PAY-1"]) == ["PAY-1"]
     assert registre(tmp_path).verifier() == []
+
+
+def test_un_faussaire_qui_recalcule_l_empreinte_est_quand_meme_pris(tmp_path):
+    """La garantie que la démonstration affiche, et qu'aucun test ne tenait.
+
+    Réécrire un montant se voit — c'est le test précédent. Mais un faussaire
+    compétent recalcule l'empreinte de la ligne qu'il vient de modifier, et
+    cette ligne-là redevient cohérente avec elle-même.
+
+    Il échoue quand même, et c'est tout l'intérêt du chaînage : **le suivant
+    porte l'empreinte d'avant**. La ligne réécrite passe, la suivante dénonce
+    la substitution. On ne réécrit donc pas un enregistrement seul — il faudrait
+    réécrire toute la suite, et le dernier maillon reste.
+    """
+    r = registre(tmp_path)
+    un_paiement(r, "PAY-1")
+    un_paiement(r, "PAY-2", centimes=1000)
+
+    lignes = r.chemin.read_text(encoding="utf-8").splitlines()
+    e = json.loads(lignes[0])
+    e["intention"]["centimes"] = 1
+    # Le faussaire fait son travail proprement : il remet l'empreinte d'accord
+    # avec le corps qu'il vient de changer.
+    corps = {cle: e[cle] for cle in _CORPS if cle in e}
+    e["chain"] = _empreinte(corps, e["prev"])
+    lignes[0] = json.dumps(e, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    r.chemin.write_text("\n".join(lignes) + "\n", encoding="utf-8")
+
+    problemes = r.verifier()
+
+    assert problemes, "une ligne réécrite avec son empreinte refaite a passé la vérification"
+    assert "enregistrement 2" in problemes[0]
+    assert "ne suit pas" in problemes[0]

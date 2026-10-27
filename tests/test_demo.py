@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import pytest
 
-from mandat.demo import FournisseurInterdit, scene_chaine, scene_refus
+from mandat.demo import (FournisseurInterdit, scene_chaine, jouer, scene_falsification,
+                         scene_refus)
 from mandat.registre import Registre
 
 
@@ -83,7 +84,7 @@ def test_la_scene_tourne_avec_un_fournisseur_qui_refuse_d_etre_appele(tmp_path):
     assert enregistrement["issue"] == "refuse"
 
 
-@pytest.mark.parametrize("scene", [scene_refus, scene_chaine])
+@pytest.mark.parametrize("scene", [scene_refus, scene_chaine, scene_falsification])
 def test_la_scene_s_affiche_sur_une_console_windows(tmp_path, scene):
     """Les tests capturaient dans une liste ; une console, elle, encode.
 
@@ -129,3 +130,44 @@ def test_la_scene_de_la_chaine_part_de_la_reference_du_paiement(tmp_path):
     assert enregistrement["issue"] == "paye"
     assert enregistrement["reference"] in texte
     assert "page-libraire" in texte
+
+
+def test_la_scene_de_falsification_fait_nommer_la_ligne_modifiee(tmp_path):
+    """La seule scene ou le produit doit echouer pour reussir.
+
+    Un registre qui se declare « correct » apres qu'on a reecrit une ligne ne
+    prouve rien du tout. Les deux assertions tiennent ensemble : intact avant,
+    rompu apres. Une fonction qui renverrait un rapport sans rien ecrire ni
+    falsifier ne pourrait satisfaire la premiere qu'en trichant sur la seconde.
+    """
+    rapport = scene_falsification(
+        registre=Registre(tmp_path / "registre.jsonl"),
+        fournisseur=FournisseurEspion(),
+        ecrire=lambda *_: None,
+    )
+
+    assert rapport["avant"] == []
+    assert rapport["apres"]
+    assert any("enregistrement" in e for e in rapport["apres"])
+
+
+def test_jouer_enchaine_les_trois_scenes(tmp_path):
+    """Le cablage lui-meme, parce qu'il a casse deux fois.
+
+    Les scenes etaient vertes et `python -m mandat.demo` plantait : le point
+    d'entree passait a la scene C un fournisseur interdit, alors qu'elle paie
+    reellement. Un `__main__` marque « pragma: no cover » n'est pas une raison
+    de ne pas le tester — c'est une raison de l'extraire.
+    """
+    lignes: list[str] = []
+
+    jouer(
+        registre=Registre(tmp_path / "registre.jsonl"),
+        fournisseur=FournisseurEspion(),
+        ecrire=lignes.append,
+    )
+
+    texte = "\n".join(lignes)
+    assert "Scene A" in texte or "Scène A" in texte
+    assert "Scene B" in texte or "Scène B" in texte
+    assert "Scene C" in texte or "Scène C" in texte
