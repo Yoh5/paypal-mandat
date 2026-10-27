@@ -35,24 +35,24 @@ register's own verdict on whether anyone has rewritten the record since.
 ```
 == Scene A ========================================================
 
-  On ne tient qu'une référence :   0NW87949GN153422L
+  All we hold is a reference:   86F76120RW275590H
 
-  Ce que l'agent a lu
-      Imprimante laser reconditionnée ......... 89,90 EUR
-      Ramette A4, 500 feuilles ................. 6,40 EUR
-      preuves rattachées : page-libraire
+  What the agent read
+      Refurbished laser printer ............... 89,90 EUR
+      A4 paper, 500 sheets ..................... 6,40 EUR
+      evidence attached: bookshop-page
 
-  Ce qu'il a décidé
-      Ramette A4, 500 feuilles pour 6,40 EUR
-      chez Libraire du coin
+  What it decided
+      A4 paper, 500 sheets for 6,40 EUR
+      from The Corner Bookshop
 
-  Ce que le mandat permettait à cet instant
-      mandat « demo-libraire », 2026-10-27T21:10:44Z
-      par transaction 40,00 / total 100,00
-      dépensé après ce paiement : 6,40
+  What the mandate permitted at that instant
+      mandate 'demo-bookshop', 2026-10-27T21:27:42Z
+      per transaction 40,00 / total 100,00
+      spent after this payment: 6,40
 
-  Intégrité           registre intact : 1 enregistrement(s) re-chaînés,
-                      aucun écart. Personne n'a réécrit ceci depuis.
+  Integrity           register intact: 1 record(s) re-chained,
+                      no discrepancy. Nobody has rewritten this since.
 ```
 
 That reference is a **real PayPal sandbox order**, not a stand-in.
@@ -65,10 +65,10 @@ hallucination — and proposes it in good faith. The gateway refuses, and the
 reason is written to the register with the same weight as a payment.
 
 ```
-  Verdict             REFUSÉ  89,90  [plafond par transaction] 89,90 demandés, 40,00 permis
+  Verdict             REFUSED 89,90  [per-transaction cap] 89,90 requested, 40,00 allowed
 
-  Le fournisseur n'a pas été appelé. Le mandat s'oppose avant l'appel,
-  pas après : un plafond vérifié après coup n'est pas un plafond.
+  The provider was not called. The mandate stands in the way before
+  the call, not after: a cap checked afterwards is not a cap.
 ```
 
 **Scene B needs no PayPal credentials at all.** That is not a testing
@@ -88,14 +88,21 @@ are recorded, the register declares itself intact, then one line is rewritten
 their tracks uses the API built for it.
 
 ```
-  Avant               intact : 2 enregistrement(s) re-chaînés
+== Scene C ========================================================
 
-  On réécrit le registre comme le ferait quelqu'un qui couvre
-  ses traces — en éditant le fichier, pas en appelant la bibliothèque :
-      enregistrement 1, montant 6,40 -> 0,01
+  Before              intact: 2 record(s) re-chained
 
-  Après               ROMPU
-      enregistrement 1 a été modifié depuis son écriture
+  We rewrite the register the way someone covering their tracks
+  would -- by editing the file, not by calling the library:
+      record 1, amount 6,40 -> 0,01
+
+  After               BROKEN
+      record 1 was modified after it was written
+
+  The verifier does not call the log fine: it names the line. And
+  recomputing the fingerprint would not save the forger: the next
+  record carries the previous one's, and it is the next record that
+  would denounce the substitution. The whole tail would have to go.
 ```
 
 A verifier that answered "the log is fine" here would prove nothing. And

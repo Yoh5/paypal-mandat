@@ -63,7 +63,7 @@ def test_la_scene_nomme_la_regle_qui_a_refuse(tmp_path):
     )
 
     texte = "\n".join(lignes)
-    assert "plafond par transaction" in texte
+    assert "per-transaction cap" in texte
     assert "89,90" in texte
     assert "40,00" in texte
 
@@ -129,7 +129,7 @@ def test_la_scene_de_la_chaine_part_de_la_reference_du_paiement(tmp_path):
     texte = "\n".join(lignes)
     assert enregistrement["issue"] == "paye"
     assert enregistrement["reference"] in texte
-    assert "page-libraire" in texte
+    assert "bookshop-page" in texte
 
 
 def test_la_scene_de_falsification_fait_nommer_la_ligne_modifiee(tmp_path):
@@ -148,7 +148,7 @@ def test_la_scene_de_falsification_fait_nommer_la_ligne_modifiee(tmp_path):
 
     assert rapport["avant"] == []
     assert rapport["apres"]
-    assert any("enregistrement" in e for e in rapport["apres"])
+    assert any("record" in e for e in rapport["apres"])
 
 
 def test_jouer_enchaine_les_trois_scenes(tmp_path):

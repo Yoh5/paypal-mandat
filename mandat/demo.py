@@ -1,13 +1,16 @@
-"""Les scènes de démonstration — le moment où le produit se voit.
+"""The demonstration scenes -- the moment the product becomes visible.
 
-Un mandat vérifié par le code est invisible tant que personne ne le regarde
-refuser. Ce module ne contient aucune règle : il met en scène celles des autres
-modules, pour qu'un spectateur voie en trente secondes ce que les tests
-prouvent en silence.
+A mandate enforced by code is invisible until someone watches it refuse. This
+module holds no rules of its own: it stages the rules of the other modules, so
+that a viewer sees in thirty seconds what the tests prove in silence.
 
-**Propriété du produit, pas commodité de démonstration :** la scène du refus
-tourne sans le moindre identifiant PayPal, parce que le refus se produit *avant*
-l'appel au fournisseur.
+**A property of the product, not a convenience of the demo:** the refusal scene
+runs without a single PayPal credential, because the refusal happens *before*
+the call to the provider.
+
+The code's own identifiers stay French -- `mandat`, `porte`, `registre`. Only
+what a reader or a juror sees is in English, because renaming the implementation
+would be a large diff that shows a judge nothing.
 """
 from __future__ import annotations
 
@@ -20,31 +23,175 @@ from .paypal import Fournisseur, Passerelle, resume
 from .proposition import Proposition, fonder
 from .registre import Registre
 
-#: Ce que l'agent a réellement lu. Le prix qui sera refusé vient de cette page,
-#: pas du modèle : la scène montre un refus de mandat, pas une hallucination.
+#: What the agent actually read. The price that gets refused comes from this
+#: page, not from the model: the scene shows a mandate breach, not a
+#: hallucination.
 PAGE_LUE = (
-    "Libraire du coin — Fournitures de bureau\n"
-    "Imprimante laser reconditionnée ......... 89,90 EUR\n"
-    "Ramette A4, 500 feuilles ................. 6,40 EUR\n"
+    "The Corner Bookshop -- Office supplies\n"
+    "Refurbished laser printer ............... 89,90 EUR\n"
+    "A4 paper, 500 sheets ..................... 6,40 EUR\n"
 )
+
+MARCHAND = "The Corner Bookshop"
 
 
 class FournisseurInterdit:
-    """Un fournisseur qui ne peut pas être appelé, et le dit fort.
+    """A provider that cannot be called, and says so loudly.
 
-    La scène du refus n'a aucune raison de joindre PayPal. Lui passer un double
-    silencieux rendrait la garantie *invisible* ; lui passer celui-ci la rend
-    **indestructible** : si la vérification du mandat migrait un jour après
-    l'appel, la démonstration ne ralentirait pas, elle casserait en nommant la
-    faute.
+    The refusal scene has no reason to reach PayPal. Handing it a silent double
+    would make the guarantee *invisible*; handing it this one makes it
+    **indestructible**: should the mandate check ever move to after the call,
+    the demo would not run slower, it would break and name the fault.
     """
 
     def creer(self, centimes: int, devise: str, description: str) -> tuple[str, str]:
         raise AssertionError(
-            f"le fournisseur a été appelé pour {euros(centimes)} ({description!r}) : "
-            "le mandat a été vérifié après l'appel au lieu d'avant, "
-            "et ce n'est donc plus un plafond"
+            f"the provider was called for {euros(centimes)} ({description!r}): "
+            "the mandate was checked after the call instead of before, "
+            "so it is no longer a cap"
         )
+
+
+def _porte_de_demonstration() -> Porte:
+    """One mandate for all three scenes.
+
+    Deliberately shared: the paper passes and the printer is refused *under the
+    same limits*. Two different mandates would be two stories and would prove
+    nothing.
+    """
+    return Porte(
+        Mandat.emettre(
+            "demo-bookshop",
+            devise="EUR",
+            par_transaction="40.00",
+            total="100.00",
+            marchands=(MARCHAND,),
+        )
+    )
+
+
+def _ramette() -> Proposition:
+    """The purchase the mandate allows: 6,40, grounded in the page."""
+    return fonder(
+        Proposition.extraite(quoi="A4 paper, 500 sheets", montant="6.40",
+                             devise="EUR", marchand=MARCHAND,
+                             preuves=("bookshop-page",)),
+        [PAGE_LUE])
+
+
+def _imprimante() -> Proposition:
+    """The purchase the mandate refuses: 89,90 against a cap of 40,00."""
+    return fonder(
+        Proposition.extraite(quoi="Refurbished laser printer", montant="89.90",
+                             devise="EUR", marchand=MARCHAND,
+                             preuves=("bookshop-page",)),
+        [PAGE_LUE])
+
+
+def scene_chaine(
+    *,
+    registre: Registre,
+    fournisseur: Fournisseur,
+    ecrire: Callable[[str], Any] = print,
+) -> dict[str, Any]:
+    """From a transaction reference, the whole justification.
+
+    A purchase the mandate allows, then the chain read back **from the register**
+    rather than from the variable just filled in: what the agent read, what it
+    decided, what the mandate permitted at that instant, and the fact that
+    nobody has rewritten the record since.
+    """
+    porte = _porte_de_demonstration()
+    passerelle = Passerelle(porte, registre, fournisseur)
+    proposition = _ramette()
+
+    paye = passerelle.payer(proposition)
+    reference = paye["reference"]
+
+    # The point of the scene: we start again from the reference, the way someone
+    # holding a statement and nothing else would.
+    enregistrement = passerelle.pourquoi(reference)
+    ecarts = registre.verifier()
+    mandat = porte.mandat
+
+    ecrire("== Scene A " + "=" * 56)
+    ecrire("")
+    ecrire(f"  All we hold is a reference:   {reference}")
+    ecrire("")
+    ecrire("  What the agent read")
+    for ligne in PAGE_LUE.strip().splitlines()[1:]:
+        ecrire(f"      {ligne}")
+    ecrire(f"      evidence attached: {', '.join(enregistrement['preuves'])}")
+    ecrire("")
+    ecrire("  What it decided")
+    ecrire(f"      {proposition.quoi} for {euros(enregistrement['intention']['centimes'])}"
+           f" {enregistrement['intention']['devise']}")
+    ecrire(f"      from {enregistrement['intention']['marchand']}")
+    ecrire("")
+    ecrire("  What the mandate permitted at that instant")
+    ecrire(f"      mandate '{enregistrement['mandat']}', {enregistrement['at']}")
+    ecrire(f"      per transaction {euros(mandat.par_transaction)}"
+           f" / total {euros(mandat.total)}")
+    ecrire(f"      spent after this payment: {euros(enregistrement['depense_apres'])}")
+    ecrire("")
+    if ecarts:
+        ecrire("  Integrity           BROKEN")
+        for e in ecarts:
+            ecrire(f"      {e}")
+    else:
+        ecrire(f"  Integrity           register intact:"
+               f" {len(registre.enregistrements())} record(s) re-chained,")
+        ecrire("                      no discrepancy. Nobody has rewritten this since.")
+
+    return enregistrement
+
+
+def scene_refus(
+    *,
+    registre: Registre,
+    fournisseur: Fournisseur,
+    ecrire: Callable[[str], Any] = print,
+) -> dict[str, Any]:
+    """A spend beyond the mandate, refused before the provider is called.
+
+    The mandate allows 40,00 per transaction; the agent reads a price of 89,90
+    on a real page and proposes it in good faith. The code refuses, and the
+    reason is written to the register with the same weight as a payment.
+    """
+    porte = _porte_de_demonstration()
+    passerelle = Passerelle(porte, registre, fournisseur)
+    proposition = _imprimante()
+
+    enregistrement = passerelle.payer(proposition)
+    mandat = porte.mandat
+
+    # ASCII rules: the default Windows terminal is cp1252, which has no
+    # box-drawing characters. A scene that does not display cannot be filmed.
+    ecrire("== Scene B " + "=" * 56)
+    ecrire("")
+    ecrire(f"  Mandate '{mandat.identifiant}'")
+    ecrire(f"      per transaction   {euros(mandat.par_transaction)}")
+    ecrire(f"      total             {euros(mandat.total)}")
+    ecrire(f"      merchants         {', '.join(sorted(mandat.marchands))}")
+    ecrire("")
+    ecrire("  What the agent read")
+    for ligne in PAGE_LUE.strip().splitlines():
+        ecrire(f"      {ligne}")
+    ecrire("")
+    ecrire("  What it proposes")
+    ecrire(f"      {proposition.quoi} -- {euros(proposition.montant_centimes)}"
+           f" from {proposition.marchand}")
+    ecrire("      the price is found in the page, so the proposition is grounded:")
+    ecrire("      what follows is not a hallucination but a breach of the mandate")
+    ecrire("")
+    ecrire(f"  Verdict             {resume(enregistrement)}")
+    ecrire("")
+    ecrire("  The provider was not called. The mandate stands in the way before")
+    ecrire("  the call, not after: a cap checked afterwards is not a cap.")
+    ecrire(f"  Written to the register at sequence {enregistrement['sequence']},")
+    ecrire(f"  chained on {enregistrement['chain'][:16]}...")
+
+    return enregistrement
 
 
 def scene_falsification(
@@ -53,27 +200,18 @@ def scene_falsification(
     fournisseur: Fournisseur,
     ecrire: Callable[[str], Any] = print,
 ) -> dict[str, list[str]]:
-    """La seule scène où le produit doit échouer pour réussir.
+    """The only scene where the product has to fail in order to succeed.
 
-    Deux décisions sont inscrites, le registre se déclare intact, puis une ligne
-    est réécrite **directement dans le fichier** — pas via cette bibliothèque,
-    parce que personne qui couvre ses traces n'emprunte l'API prévue pour ça.
-    Le vérificateur ne doit pas répondre « le journal est correct » : il doit
-    nommer la ligne.
+    Two decisions are recorded, the register declares itself intact, then one
+    line is rewritten **directly in the file** -- not through this library,
+    because nobody covering their tracks uses the API built for it. The verifier
+    must not answer "the log is fine": it must name the line.
     """
     porte = _porte_de_demonstration()
     passerelle = Passerelle(porte, registre, fournisseur)
 
-    passerelle.payer(fonder(
-        Proposition.extraite(quoi="Ramette A4, 500 feuilles", montant="6.40",
-                             devise="EUR", marchand="Libraire du coin",
-                             preuves=("page-libraire",)),
-        [PAGE_LUE]))
-    passerelle.payer(fonder(
-        Proposition.extraite(quoi="Imprimante laser reconditionnée", montant="89.90",
-                             devise="EUR", marchand="Libraire du coin",
-                             preuves=("page-libraire",)),
-        [PAGE_LUE]))
+    passerelle.payer(_ramette())
+    passerelle.payer(_imprimante())
 
     avant = registre.verifier()
 
@@ -88,170 +226,25 @@ def scene_falsification(
 
     apres = registre.verifier()
 
-    ecrire("== Scène C " + "=" * 56)
+    ecrire("== Scene C " + "=" * 56)
     ecrire("")
-    ecrire(f"  Avant               {'intact' if not avant else 'ROMPU'} :"
-           f" {len(lignes)} enregistrement(s) re-chaînés")
+    ecrire(f"  Before              {'intact' if not avant else 'BROKEN'}:"
+           f" {len(lignes)} record(s) re-chained")
     ecrire("")
-    ecrire("  On réécrit le registre comme le ferait quelqu'un qui couvre")
-    ecrire("  ses traces — en éditant le fichier, pas en appelant la bibliothèque :")
-    ecrire(f"      enregistrement 1, montant {euros(montant_avant)} -> {euros(1)}")
+    ecrire("  We rewrite the register the way someone covering their tracks")
+    ecrire("  would -- by editing the file, not by calling the library:")
+    ecrire(f"      record 1, amount {euros(montant_avant)} -> {euros(1)}")
     ecrire("")
-    ecrire(f"  Après               {'intact' if not apres else 'ROMPU'}")
+    ecrire(f"  After               {'intact' if not apres else 'BROKEN'}")
     for probleme in apres:
         ecrire(f"      {probleme}")
     ecrire("")
-    ecrire("  Le vérificateur ne déclare pas le journal correct : il nomme la ligne.")
-    ecrire("  Et recalculer l'empreinte ne sauverait pas le faussaire : le")
-    ecrire("  suivant porte celle d'avant, et c'est lui qui dénoncerait la")
-    ecrire("  substitution. Il faudrait réécrire toute la suite.")
+    ecrire("  The verifier does not call the log fine: it names the line. And")
+    ecrire("  recomputing the fingerprint would not save the forger: the next")
+    ecrire("  record carries the previous one's, and it is the next record that")
+    ecrire("  would denounce the substitution. The whole tail would have to go.")
 
     return {"avant": avant, "apres": apres}
-
-
-def _porte_de_demonstration() -> Porte:
-    """Le même mandat pour les deux scènes.
-
-    Volontairement partagé : la ramette passe et l'imprimante est refusée *sous
-    les mêmes limites*. Deux mandats différents raconteraient deux histoires et
-    ne prouveraient rien.
-    """
-    return Porte(
-        Mandat.emettre(
-            "demo-libraire",
-            devise="EUR",
-            par_transaction="40.00",
-            total="100.00",
-            marchands=("Libraire du coin",),
-        )
-    )
-
-
-def scene_chaine(
-    *,
-    registre: Registre,
-    fournisseur: Fournisseur,
-    ecrire: Callable[[str], Any] = print,
-) -> dict[str, Any]:
-    """Depuis une référence de transaction, toute la justification.
-
-    Un achat que le mandat autorise, puis la chaîne relue **depuis le registre**
-    et non depuis la variable qu'on vient de remplir : ce que l'agent a lu, ce
-    qu'il a décidé, ce que le mandat permettait à cet instant, et le fait que
-    personne n'a réécrit l'enregistrement depuis.
-    """
-    porte = _porte_de_demonstration()
-    passerelle = Passerelle(porte, registre, fournisseur)
-
-    proposition = fonder(
-        Proposition.extraite(
-            quoi="Ramette A4, 500 feuilles",
-            montant="6.40",
-            devise="EUR",
-            marchand="Libraire du coin",
-            preuves=("page-libraire",),
-        ),
-        [PAGE_LUE],
-    )
-
-    paye = passerelle.payer(proposition)
-    reference = paye["reference"]
-
-    # Le point de la scène : on repart de la référence, comme le ferait
-    # quelqu'un qui tient un relevé et rien d'autre.
-    enregistrement = passerelle.pourquoi(reference)
-    ecarts = registre.verifier()
-    mandat = porte.mandat
-
-    ecrire("== Scène A " + "=" * 56)
-    ecrire("")
-    ecrire(f"  On ne tient qu'une référence :   {reference}")
-    ecrire("")
-    ecrire("  Ce que l'agent a lu")
-    for ligne in PAGE_LUE.strip().splitlines()[1:]:
-        ecrire(f"      {ligne}")
-    ecrire(f"      preuves rattachées : {', '.join(enregistrement['preuves'])}")
-    ecrire("")
-    ecrire("  Ce qu'il a décidé")
-    ecrire(f"      {proposition.quoi} pour {euros(enregistrement['intention']['centimes'])}"
-           f" {enregistrement['intention']['devise']}")
-    ecrire(f"      chez {enregistrement['intention']['marchand']}")
-    ecrire("")
-    ecrire("  Ce que le mandat permettait à cet instant")
-    ecrire(f"      mandat « {enregistrement['mandat']} », {enregistrement['at']}")
-    ecrire(f"      par transaction {euros(mandat.par_transaction)}"
-           f" / total {euros(mandat.total)}")
-    ecrire(f"      dépensé après ce paiement : {euros(enregistrement['depense_apres'])}")
-    ecrire("")
-    if ecarts:
-        ecrire("  Intégrité           ROMPUE")
-        for e in ecarts:
-            ecrire(f"      {e}")
-    else:
-        ecrire(f"  Intégrité           registre intact :"
-               f" {len(registre.enregistrements())} enregistrement(s) re-chaînés,")
-        ecrire("                      aucun écart. Personne n'a réécrit ceci depuis.")
-
-    return enregistrement
-
-
-def scene_refus(
-    *,
-    registre: Registre,
-    fournisseur: Fournisseur,
-    ecrire: Callable[[str], Any] = print,
-) -> dict[str, Any]:
-    """Une dépense au-delà du mandat, refusée avant l'appel au fournisseur.
-
-    Le mandat autorise 40,00 € par transaction ; l'agent lit un prix de 89,90 €
-    sur une page réelle et le propose de bonne foi. Le code refuse, et la raison
-    est inscrite au registre au même titre qu'un paiement.
-    """
-    porte = _porte_de_demonstration()
-    passerelle = Passerelle(porte, registre, fournisseur)
-
-    proposition = fonder(
-        Proposition.extraite(
-            quoi="Imprimante laser reconditionnée",
-            montant="89.90",
-            devise="EUR",
-            marchand="Libraire du coin",
-            preuves=("page-libraire",),
-        ),
-        [PAGE_LUE],
-    )
-
-    enregistrement = passerelle.payer(proposition)
-
-    mandat = porte.mandat
-    # Filets en ASCII : le terminal Windows par défaut est en cp1252, qui ne
-    # connaît pas les caractères semi-graphiques. Une scène qui ne s'affiche pas
-    # ne se filme pas.
-    ecrire("== Scène B " + "=" * 56)
-    ecrire("")
-    ecrire(f"  Mandat « {mandat.identifiant} »")
-    ecrire(f"      par transaction   {euros(mandat.par_transaction)}")
-    ecrire(f"      total             {euros(mandat.total)}")
-    ecrire(f"      marchands         {', '.join(sorted(mandat.marchands))}")
-    ecrire("")
-    ecrire("  Ce que l'agent a lu")
-    for ligne in PAGE_LUE.strip().splitlines():
-        ecrire(f"      {ligne}")
-    ecrire("")
-    ecrire("  Ce qu'il propose")
-    ecrire(f"      {proposition.quoi} — {euros(proposition.montant_centimes)}"
-           f" chez {proposition.marchand}")
-    ecrire("      le prix se retrouve dans la page : la proposition est fondée,")
-    ecrire("      ce qui suit n'est donc pas une hallucination mais un dépassement")
-    ecrire("")
-    ecrire(f"  Verdict             {resume(enregistrement)}")
-    ecrire("")
-    ecrire("  Le fournisseur n'a pas été appelé. Le mandat s'oppose avant l'appel,")
-    ecrire("  pas après : un plafond vérifié après coup n'est pas un plafond.")
-    ecrire(f"  Inscrit au registre sous la séquence {enregistrement['sequence']},")
-    ecrire(f"  chaîné sur {enregistrement['chain'][:16]}…")
-
-    return enregistrement
 
 
 def jouer(
@@ -260,23 +253,23 @@ def jouer(
     fournisseur: Fournisseur,
     ecrire: Callable[[str], Any] = print,
 ) -> None:
-    """Les trois scenes, dans l'ordre de la video.
+    """The three scenes, in the order of the video.
 
-    Ca marche, ca refuse, et on ne peut pas reecrire l'histoire. L'ordre est un
-    crescendo : la scene C ne vaut que si l'on a d'abord vu ce qu'elle protege.
+    It works, it refuses, and history cannot be rewritten. The order is a
+    crescendo: scene C is only worth anything once you have seen what it
+    protects.
 
-    **Cette fonction existe parce que le cablage a casse deux fois.** Les trois
-    scenes etaient vertes et `python -m mandat.demo` plantait, parce que le
-    point d'entree donnait a la scene C un fournisseur interdit alors qu'elle
-    paie reellement. Un enchainement qui n'est pas appelable depuis un test
-    n'est pas verifie.
+    **This function exists because the wiring broke twice.** All three scenes
+    were green while `python -m mandat.demo` crashed, because the entry point
+    handed scene C a forbidding provider although that scene really pays. An
+    orchestration no test can call is an orchestration nobody checks.
     """
     scene_chaine(registre=registre, fournisseur=fournisseur, ecrire=ecrire)
     ecrire("")
     scene_refus(registre=registre, fournisseur=fournisseur, ecrire=ecrire)
     ecrire("")
-    # La scene C reecrit son registre : elle travaille donc sur le sien, pour ne
-    # pas rompre la chaine que les deux premieres viennent de construire.
+    # Scene C rewrites its register, so it works on its own, to avoid breaking
+    # the chain the first two have just built.
     scene_falsification(
         registre=Registre(Path(registre.chemin).with_suffix(".falsifie.jsonl")),
         fournisseur=fournisseur,
@@ -294,11 +287,11 @@ if __name__ == "__main__":  # pragma: no cover
     try:
         fournisseur = PayPal.depuis_env()
     except Exception as pourquoi:
-        print("== Scenes A et C non jouees " + "=" * 40)
-        print(f"  Pas d'acces au bac a sable PayPal : {pourquoi}")
-        print("  Les scenes A et C inscrivent un vrai paiement ; sans identifiants")
-        print("  elles n'ont rien a montrer. La scene B, elle, tourne partout : un")
-        print("  refus n'appelle personne, et c'est precisement ce qu'elle demontre.")
+        print("== Scenes A and C not played " + "=" * 39)
+        print(f"  No access to the PayPal sandbox: {pourquoi}")
+        print("  Scenes A and C record a real payment; without credentials they")
+        print("  have nothing to show. Scene B runs anywhere: a refusal calls")
+        print("  nobody, and that is precisely what it demonstrates.")
         print()
         scene_refus(registre=Registre(chemin), fournisseur=FournisseurInterdit())
     else:

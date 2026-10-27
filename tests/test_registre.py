@@ -56,11 +56,11 @@ def test_un_refus_s_inscrit_au_meme_titre(tmp_path):
     d'interdit."""
     r = registre(tmp_path)
     r.refus(at=QUAND, mandat="m-1", montant_centimes=9999, devise="EUR",
-            regle="plafond par transaction", detail="99,99 demandés, 25,00 permis")
+            regle="per-transaction cap", detail="99,99 requested, 25,00 allowed")
 
     e = r.enregistrements()[0]
     assert e["issue"] == "refuse"
-    assert e["regle"] == "plafond par transaction"
+    assert e["regle"] == "per-transaction cap"
     assert "25,00" in e["detail"]
 
 
@@ -97,7 +97,7 @@ def test_un_enregistrement_modifie_est_nomme(tmp_path):
     r.chemin.write_text("\n".join(lignes) + "\n", encoding="utf-8")
 
     problemes = r.verifier()
-    assert problemes and "enregistrement 2" in problemes[0]
+    assert problemes and "record 2" in problemes[0]
 
 
 def test_un_champ_hors_hachage_est_signale(tmp_path):
@@ -201,5 +201,5 @@ def test_un_faussaire_qui_recalcule_l_empreinte_est_quand_meme_pris(tmp_path):
     problemes = r.verifier()
 
     assert problemes, "une ligne réécrite avec son empreinte refaite a passé la vérification"
-    assert "enregistrement 2" in problemes[0]
-    assert "ne suit pas" in problemes[0]
+    assert "record 2" in problemes[0]
+    assert "does not follow" in problemes[0]

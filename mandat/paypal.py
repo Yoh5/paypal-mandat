@@ -304,7 +304,7 @@ def resume(enregistrement: dict[str, Any]) -> str:
     """Une ligne lisible, pour la démonstration et les journaux."""
     montant = euros(enregistrement["intention"]["centimes"])
     if enregistrement["issue"] == "paye":
-        return (f"PAYÉ    {montant} → {enregistrement['reference']}"
-                f"  ({enregistrement['intention']['marchand'] or 'sans marchand'})")
-    return (f"REFUSÉ  {montant}  [{enregistrement['regle']}] "
+        return (f"PAID    {montant} -> {enregistrement['reference']}"
+                f"  ({enregistrement['intention']['marchand'] or 'no merchant'})")
+    return (f"REFUSED {montant}  [{enregistrement['regle']}] "
             f"{enregistrement['detail']}")

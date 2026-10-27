@@ -58,21 +58,21 @@ def test_un_refus_de_plafond_napelle_pas_le_fournisseur(tmp_path):
     enregistrement = p.payer(proposition(centimes=9_000))
     assert espion.appels == [], "PayPal a été appelé pour un montant refusé"
     assert enregistrement["issue"] == "refuse"
-    assert enregistrement["regle"] == "plafond par transaction"
+    assert enregistrement["regle"] == "per-transaction cap"
 
 
 def test_un_marchand_hors_mandat_napelle_pas_le_fournisseur(tmp_path):
     p, espion = passerelle(tmp_path, marchands=["papeterie"])
     enregistrement = p.payer(proposition(marchand="casino-en-ligne"))
     assert espion.appels == []
-    assert enregistrement["regle"] == "marchand"
+    assert enregistrement["regle"] == "merchant"
 
 
 def test_une_devise_etrangere_napelle_pas_le_fournisseur(tmp_path):
     p, espion = passerelle(tmp_path)
     enregistrement = p.payer(proposition(devise="USD"))
     assert espion.appels == []
-    assert enregistrement["regle"] == "devise"
+    assert enregistrement["regle"] == "currency"
 
 
 def test_le_plafond_total_arrete_le_deuxieme_paiement(tmp_path):
@@ -80,7 +80,7 @@ def test_le_plafond_total_arrete_le_deuxieme_paiement(tmp_path):
     p.payer(proposition(centimes=6_000))
     enregistrement = p.payer(proposition(centimes=6_000))
     assert len(espion.appels) == 1, "le second a franchi le total"
-    assert enregistrement["regle"] == "plafond total"
+    assert enregistrement["regle"] == "total cap"
     assert "40,00" in enregistrement["detail"] or "40.00" in enregistrement["detail"]
 
 
@@ -254,5 +254,5 @@ def test_resume_dit_le_refus_aussi_clairement_que_le_paiement(tmp_path):
     p, _ = passerelle(tmp_path)
     paye = resume(p.payer(proposition(centimes=1_000)))
     refuse = resume(p.payer(proposition(centimes=9_000)))
-    assert paye.startswith("PAYÉ") and "ORDER0001" in paye
-    assert refuse.startswith("REFUSÉ") and "plafond par transaction" in refuse
+    assert paye.startswith("PAID") and "ORDER0001" in paye
+    assert refuse.startswith("REFUSED") and "per-transaction cap" in refuse

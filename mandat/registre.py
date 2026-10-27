@@ -176,17 +176,18 @@ class Registre:
 
             if brut.get("prev") != prev:
                 problemes.append(
-                    f"enregistrement {position} ne suit pas le précédent : "
-                    "une ligne a été modifiée, supprimée ou insérée"
+                    f"record {position} does not follow the previous one: "
+                    "a line was modified, deleted or inserted"
                 )
             elif _empreinte(corps, prev) != brut.get("chain"):
-                problemes.append(f"enregistrement {position} a été modifié depuis son écriture")
+                problemes.append(
+                    f"record {position} was modified after it was written")
 
             hors = sorted(set(brut) - set(_CORPS) - set(_STRUCTURE))
             if hors:
                 problemes.append(
-                    f"enregistrement {position} porte {', '.join(hors)}, qu'aucun "
-                    "hachage ne couvre"
+                    f"record {position} carries {', '.join(hors)}, which no "
+                    "hash covers"
                 )
 
             prev = brut.get("chain")

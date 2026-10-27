@@ -57,7 +57,7 @@ def test_le_plafond_par_transaction_mord():
     p = Porte(mandat())
     with pytest.raises(Refus) as leve:
         p.engager("25.01")
-    assert leve.value.regle == "plafond par transaction"
+    assert leve.value.regle == "per-transaction cap"
     assert "25,01" in leve.value.detail and "25,00" in leve.value.detail
 
 
@@ -70,7 +70,7 @@ def test_le_plafond_total_mord_sur_le_cumul():
     assert p.reste == 0
     with pytest.raises(Refus) as leve:
         p.engager("0.01")
-    assert leve.value.regle == "plafond total"
+    assert leve.value.regle == "total cap"
 
 
 def test_le_refus_nomme_la_regle_et_les_chiffres():
@@ -88,7 +88,7 @@ def test_un_montant_nul_ou_negatif_n_est_pas_un_paiement():
     for mauvais in ("0", "-5.00"):
         with pytest.raises(Refus) as leve:
             p.engager(mauvais)
-        assert leve.value.regle == "montant"
+        assert leve.value.regle == "amount"
 
 
 # ── Devise, marchand, fenêtre ───────────────────────────────────────────
@@ -97,7 +97,7 @@ def test_une_autre_devise_est_refusee():
     p = Porte(mandat())
     with pytest.raises(Refus) as leve:
         p.engager("10.00", devise="USD")
-    assert leve.value.regle == "devise"
+    assert leve.value.regle == "currency"
 
 
 def test_un_marchand_hors_liste_est_refuse():
@@ -105,7 +105,7 @@ def test_un_marchand_hors_liste_est_refuse():
     assert p.engager("10.00", marchand="libraire") == 1000
     with pytest.raises(Refus) as leve:
         p.engager("10.00", marchand="casino")
-    assert leve.value.regle == "marchand"
+    assert leve.value.regle == "merchant"
     assert "epicier" in leve.value.detail, "le refus doit dire ce qui est permis"
 
 
@@ -120,7 +120,7 @@ def test_hors_de_la_fenetre_de_validite():
     for dehors in ("2026-10-31T23:59:59Z", "2026-12-01T00:00:00Z"):
         with pytest.raises(Refus) as leve:
             p.engager("10.00", instant=dehors)
-        assert leve.value.regle == "fenêtre"
+        assert leve.value.regle == "validity window"
 
 
 # ── Engagement, restitution, traces ─────────────────────────────────────
@@ -167,7 +167,7 @@ def test_les_refus_sont_conserves():
         with pytest.raises(Refus):
             p.engager(mauvais)
     assert len(p.refus) == 2
-    assert all(r.regle == "plafond par transaction" for r in p.refus)
+    assert all(r.regle == "per-transaction cap" for r in p.refus)
 
 
 # ── L'immuabilité ───────────────────────────────────────────────────────

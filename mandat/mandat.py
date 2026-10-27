@@ -167,36 +167,38 @@ class Porte:
         instant = instant or self._maintenant()
 
         if c <= 0:
-            self._refuser("montant", f"{euros(c)} n'est pas un paiement")
+            self._refuser("amount", f"{euros(c)} is not a payment")
 
         if devise != self.mandat.devise:
             self._refuser(
-                "devise",
-                f"{devise} demandée, le mandat est libellé en {self.mandat.devise}",
+                "currency",
+                f"{devise} requested, the mandate is denominated in {self.mandat.devise}",
             )
 
         if self.mandat.valide_de and instant < self.mandat.valide_de:
-            self._refuser("fenêtre", f"mandat valable à partir de {self.mandat.valide_de}, il est {instant}")
+            self._refuser("validity window",
+                          f"mandate valid from {self.mandat.valide_de}, it is {instant}")
         if self.mandat.valide_jusqu_a and instant > self.mandat.valide_jusqu_a:
-            self._refuser("fenêtre", f"mandat expiré depuis {self.mandat.valide_jusqu_a}, il est {instant}")
+            self._refuser("validity window",
+                          f"mandate expired on {self.mandat.valide_jusqu_a}, it is {instant}")
 
         if self.mandat.marchands and marchand not in self.mandat.marchands:
             permis = ", ".join(sorted(self.mandat.marchands))
-            self._refuser("marchand", f"{marchand!r} absent du mandat ({permis})")
+            self._refuser("merchant", f"{marchand!r} is not in the mandate ({permis})")
 
         pt = self.mandat.par_transaction
         if pt is not None and c > pt:
             self._refuser(
-                "plafond par transaction",
-                f"{euros(c)} demandés, {euros(pt)} permis",
+                "per-transaction cap",
+                f"{euros(c)} requested, {euros(pt)} allowed",
             )
 
         tt = self.mandat.total
         if tt is not None and self.depense + c > tt:
             reste = tt - self.depense
             self._refuser(
-                "plafond total",
-                f"{euros(c)} demandés, {euros(reste)} restants sur {euros(tt)}",
+                "total cap",
+                f"{euros(c)} requested, {euros(reste)} left of {euros(tt)}",
             )
 
         return c

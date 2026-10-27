@@ -72,7 +72,7 @@ def test_un_refus_natteint_jamais_paypal_meme_en_reseau(tmp_path, paypal):
     enregistrement = p.payer(Proposition("trop cher", 9_000, "USD", "boutique"))
 
     assert enregistrement["issue"] == "refuse"
-    assert enregistrement["regle"] == "plafond par transaction"
+    assert enregistrement["regle"] == "per-transaction cap"
     assert porte.depense == 0
     inscrites = [e.get("reference") for e in p.registre.enregistrements()]
     assert inscrites == [None] or all(r is None for r in inscrites)
