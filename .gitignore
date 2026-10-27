@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 .env
 runs/
+submission/video/_travail/
+submission/video/apercu/
