@@ -180,7 +180,23 @@ sha256, json, llm-agents, owasp-llm-top-10, apache-2.0
 2. **Vérifier que le dépôt est bien public** : `curl -o /dev/null -w "%{http_code}"
    https://github.com/Yoh5/paypal-mandat` doit rendre **200**.
 3. **Décider pour Render** : déployer une démo web avant le 12, ou ne pas cocher
-   le prix partenaire.
+   le prix partenaire. Si tu déploies, dans cet ordre :
+   - une route `/health` qui répond 200 sans rien faire de lourd ;
+   - dans GitHub → *Settings* → *Secrets and variables* → *Actions* →
+     *Variables*, poser **`DEMO_URL`** sur cette route. `keep-awake.yml` est
+     **inerte tant que cette variable n'existe pas** — il saute proprement au
+     lieu d'afficher une croix rouge pour « pas encore déployé ».
+   - **mesurer** le démarrage à froid une fois en ligne
+     (`curl -o /dev/null -w "%{time_total}" <url>` après 20 min de silence) et
+     écrire le chiffre dans la description Devpost. Ne pas l'estimer.
+
+   ⚠️ **Et le dire comme c'est :** `keep-awake.yml` ne promet pas que la démo
+   soit chaude quand un juré arrive. GitHub décide *quand* une exécution
+   planifiée part — sur un dépôt public, les relevés montrent **trois à six
+   heures** d'écart, pas dix minutes. Le workflow tient donc le service éveillé
+   **cinquante minutes par exécution** plutôt que de le piquer une fois, ce qui
+   réduit le risque sans l'annuler. La description dit le chiffre mesuré au lieu
+   de laisser croire le contraire.
 4. **Relancer la suite** avant le dépôt : `python -m pytest tests -q` doit dire
    **86 passed**. Un dépôt dont les tests sont rouges se voit.
 5. **Rouvrir chaque champ après envoi.** Un formulaire tronqué par une coupure

@@ -1,0 +1,117 @@
+# Keeping the judges' demo awake, and being honest about how well that works.
+#
+# A free Render instance sleeps after fifteen minutes of quiet, and the first
+# load after that takes about half a minute -- long enough for a judge to close
+# the tab.
+#
+# ## The thing this file exists to not get wrong again
+#
+# The first version of this workflow, in another repository, said "this pings
+# the demo every fourteen minutes" on a `*/14` schedule. It did nothing of the
+# sort. GitHub delays and drops scheduled runs on public repositories, and
+# `gh run list` showed what actually happened over three days: runs three to
+# six HOURS apart. The service was therefore asleep almost all of the time, and
+# the workflow written to prevent that was reporting success while it happened.
+#
+# Nobody looked until a run failed -- a single `curl --max-time 120` against a
+# cold instance hit exit 28, and under `bash -e` the job died on the spot. So
+# it announced a red cross on a public repository for the exact situation it
+# was written to handle.
+#
+# ## What this version does instead
+#
+# A fired run **holds** the service awake for fifty minutes rather than poking
+# it once. GitHub decides *when* a run happens and we cannot change that; we
+# can decide how long it lasts. Actions minutes are free on public
+# repositories, so the only cost is wall clock.
+#
+# A cold start is the expected case, not a failure: the budget is 180 s (120 s
+# was too short), a timed-out ping does not stop the loop, and the job fails
+# only if the service never answered once in the whole window -- which is the
+# only thing a red cross here should ever mean.
+#
+# ## What it is not
+#
+# It is not a promise that the demo is warm when a judge arrives. The
+# submission says so, with the measured number, instead of implying otherwise.
+#
+# ## Before it does anything at all
+#
+# This workflow is **inert until two things exist**: a deployed service, and a
+# repository variable `DEMO_URL` pointing at its health endpoint
+# (Settings -> Secrets and variables -> Actions -> Variables). Until then it
+# skips cleanly rather than failing, because a red cross for "not deployed yet"
+# teaches nobody anything.
+
+name: keep-awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+# Exactly one pinger alive at a time. A newer run replaces the one in flight
+# rather than queueing behind it, so the fifty-minute window always starts from
+# the most recent moment GitHub agreed to run anything.
+concurrency:
+  group: keep-awake
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Skip while there is nothing deployed
+        id: cible
+        run: |
+          if [ -z "${{ vars.DEMO_URL }}" ]; then
+            echo "::notice::DEMO_URL n'est pas defini : rien a tenir eveille."
+            echo "actif=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "actif=oui" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Hold the demo awake for fifty minutes
+        if: steps.cible.outputs.actif == 'oui'
+        env:
+          URL: ${{ vars.DEMO_URL }}
+        run: |
+          FIN=$(( $(date +%s) + 50 * 60 ))
+          reponses=0
+          echecs=0
+
+          while [ "$(date +%s)" -lt "$FIN" ]; do
+            debut=$(date +%s)
+            # 180 s : un demarrage a froid de Render depasse regulierement les
+            # 120 s qui faisaient echouer la version precedente.
+            # `|| true` et non `|| echo 000` : curl ecrit deja « 000 » via -w
+            # quand il echoue, et le repli en ajoutait un second ("000000").
+            # Le `|| true` est la pour `bash -e`, qui tuait le job sur le
+            # premier demarrage a froid.
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 180 "$URL" || true)
+            code=${code:-000}
+            duree=$(( $(date +%s) - debut ))
+
+            if [ "$code" = "200" ]; then
+              reponses=$(( reponses + 1 ))
+              echo "$(date -u +%H:%M:%S)  200 en ${duree}s"
+            else
+              echecs=$(( echecs + 1 ))
+              echo "$(date -u +%H:%M:%S)  $code apres ${duree}s"
+            fi
+
+            [ "$(date +%s)" -lt "$FIN" ] || break
+            sleep 120
+          done
+
+          echo "---"
+          echo "$reponses reponse(s) 200, $echecs echec(s) sur la fenetre"
+
+          # Un ping manque n'est pas une panne : le service peut etre en train
+          # de se reveiller, ou Render de redeployer. Ne rougir que si rien
+          # n'a repondu de toute la fenetre.
+          if [ "$reponses" -eq 0 ]; then
+            echo "::error::le service n'a repondu aucune fois en 50 minutes"
+            exit 1
+          fi
