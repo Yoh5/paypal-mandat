@@ -11,7 +11,9 @@ sans le moindre identifiant PayPal.
 """
 from __future__ import annotations
 
-from mandat.demo import FournisseurInterdit, scene_refus
+import pytest
+
+from mandat.demo import FournisseurInterdit, scene_chaine, scene_refus
 from mandat.registre import Registre
 
 
@@ -81,7 +83,8 @@ def test_la_scene_tourne_avec_un_fournisseur_qui_refuse_d_etre_appele(tmp_path):
     assert enregistrement["issue"] == "refuse"
 
 
-def test_la_scene_s_affiche_sur_une_console_windows(tmp_path):
+@pytest.mark.parametrize("scene", [scene_refus, scene_chaine])
+def test_la_scene_s_affiche_sur_une_console_windows(tmp_path, scene):
     """Les tests capturaient dans une liste ; une console, elle, encode.
 
     La première version dessinait ses filets en caractères semi-graphiques
@@ -89,13 +92,40 @@ def test_la_scene_s_affiche_sur_une_console_windows(tmp_path):
     cp1252 — l'encodage par défaut du terminal de la machine où la vidéo sera
     filmée. Trois tests verts et une démonstration qui ne démarre pas : un test
     qui n'encode jamais ne peut pas voir ce défaut-là.
+
+    Élargi aux deux scènes volontairement. Ce garde-fou-ci ne décrit pas un
+    comportement neuf : il empêche un défaut déjà survenu une fois de revenir
+    par la porte d'à côté.
     """
     lignes: list[str] = []
 
-    scene_refus(
+    scene(
         registre=Registre(tmp_path / "registre.jsonl"),
-        fournisseur=FournisseurInterdit(),
+        fournisseur=FournisseurEspion(),
         ecrire=lignes.append,
     )
 
     "\n".join(lignes).encode("cp1252")
+
+
+def test_la_scene_de_la_chaine_part_de_la_reference_du_paiement(tmp_path):
+    """On donne un identifiant de transaction, l'outil rend la justification.
+
+    Le test regarde la **sortie**, pas seulement la valeur de retour : une
+    fonction qui paierait sans jamais relire le registre renverrait le même
+    enregistrement et satisferait une assertion sur `issue`, tout en étant
+    incapable de restituer quoi que ce soit depuis une référence.
+    """
+    lignes: list[str] = []
+    espion = FournisseurEspion()
+
+    enregistrement = scene_chaine(
+        registre=Registre(tmp_path / "registre.jsonl"),
+        fournisseur=espion,
+        ecrire=lignes.append,
+    )
+
+    texte = "\n".join(lignes)
+    assert enregistrement["issue"] == "paye"
+    assert enregistrement["reference"] in texte
+    assert "page-libraire" in texte
