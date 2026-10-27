@@ -1,0 +1,7 @@
+# Runtime: nothing. The mandate, the gateway, the register and the PayPal
+# client are written against the standard library alone (urllib, json,
+# hashlib, base64). A tool that constrains payments should not ask you to
+# trust a dependency tree to do it.
+#
+# Tests only:
+pytest>=7.4
