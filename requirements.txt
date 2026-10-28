@@ -5,3 +5,9 @@
 #
 # Tests only:
 pytest>=7.4
+
+# Scene D only -- the scene where a real model reads a hostile page. The
+# boundary matters: nothing in mandat/mandat.py, paypal.py or registre.py
+# imports this. The agent depends on a dependency tree; the thing that
+# constrains the agent does not. Uncomment to run that scene:
+# anthropic>=0.40

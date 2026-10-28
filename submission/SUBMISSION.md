@@ -14,7 +14,7 @@ un prix partenaire.
 
 | Catégorie | Verdict |
 |---|---|
-| **Best Use of Agentic Commerce** | **La cible.** Catégorie nommée, et c'est exactement le sujet : un agent qui dépense, contraint par du code. |
+| **Best Use of Agentic Commerce** | **La cible.** Catégorie nommée, et c'est exactement le sujet : un agent qui dépense, contraint par du code. La scène D ne l'affirme plus, elle le montre : un vrai modèle lit une page hostile, se fait avoir, et le code l'arrête. |
 | **Best Use of PayPal + AI** | À cocher. L'intégration est centrale par construction, pas collée. |
 | **Best Demo Delivery** | À cocher. La vidéo est faite, sous-titrée, et chaque chiffre y est exécuté. |
 | Most Impactful / Most Creative | À cocher aussi : ça ne coûte rien et le jury trie. |
@@ -182,6 +182,51 @@ sha256, json, llm-agents, owasp-llm-top-10, apache-2.0
 
 ---
 
+## Scène D — l'argument qui manquait, et ce qu'il faut encore faire
+
+**Le trou qu'elle bouche.** Jusqu'au 28/10, *aucun modèle n'était appelé nulle
+part dans ce dépôt*. `requirements.txt` disait « Runtime: nothing » et les
+propositions étaient écrites à la main dans `demo.py`. L'architecture était
+défendable, mais un juré d'un hackathon **IA** pouvait légitimement répondre
+qu'il est facile d'arrêter un agent qu'on simule.
+
+**Ce que la scène montre.** Un modèle lit une page fournisseur qui porte une
+instruction destinée à ce qui la lit. Ce que le modèle répond est ce qui
+traverse les contrôles — rien n'est arrangé après coup. La page est construite
+pour que **deux des trois contrôles n'aient rien à dire** :
+
+| Contrôle | Verdict | Pourquoi |
+|---|---|---|
+| Ancrage (`fonder`) | **passe** | 29,99 et « Quick Supplies Ltd » sont écrits sur la page : c'est l'attaquant qui les y a mis. Un contrôle qui demande seulement « l'agent a-t-il inventé ce chiffre ? » n'a rien à objecter. |
+| Plafond par transaction | **passe** | 29,99 est sous 40,00. Une injection qui demande peu passe devant un plafond. |
+| Liste de marchands | **REFUSE** | le mandat ne paie que *The Corner Bookshop*. |
+
+C'est l'aveu qui porte l'argument : un contrôle unique est un point de
+défaillance unique, et la scène **nomme** celui qui tient au lieu de laisser
+croire que tout a marché. `test_l_ancrage_ne_rattrape_PAS_une_injection_ecrite_
+sur_la_page` fige cet aveu — renforcer `fonder()` un jour cassera le test au
+lieu de rendre la page menteuse en silence.
+
+**La frontière des dépendances tient.** `mandat/agent.py` est le seul fichier
+qui importe le SDK, et il l'importe à l'intérieur de la fonction. Ni le mandat,
+ni la porte, ni le registre, ni le client PayPal, ni la démo web déployée ne le
+touchent — vérifié : le service Render, qui n'installe rien, démarre toujours.
+
+### Ce qu'il reste à faire, et c'est à toi
+
+1. **Jouer la scène une fois avec une vraie clé** :
+   `ANTHROPIC_API_KEY=... python -m mandat.demo`. Elle écrit la transcription
+   dans `runs/lecture-piegee.json`, ce qui permet ensuite de la rejouer sans
+   clé — en l'annonçant à l'écran comme un rejeu, jamais comme un appel.
+2. **Regarder ce que le modèle a réellement répondu.** Il n'est pas obligé de
+   se faire avoir ; s'il résiste, la scène le dit et ne paie rien. C'est un
+   résultat honnête, mais une démonstration plus faible : il faudra alors durcir
+   la page, et le dire.
+3. **Re-rendre le film.** Il fait 2 min 22 et ne contient pas cette scène.
+   `submission/video/film.py` le génère à partir de sorties exécutées, donc
+   c'est scripté — mais ça reste un rendu à relancer, et les sous-titres
+   (`mandat-demo.en.srt`) à recaler.
+
 ## À faire avant de déposer
 
 1. ~~**Mettre la vidéo en ligne**~~ — **FAIT le 28/10** :
@@ -224,8 +269,11 @@ sha256, json, llm-agents, owasp-llm-top-10, apache-2.0
    **cinquante minutes par exécution** plutôt que de le piquer une fois, ce qui
    réduit le risque sans l'annuler. La description dit le chiffre mesuré au lieu
    de laisser croire le contraire.
-4. **Relancer la suite** avant le dépôt : `python -m pytest tests -q` doit dire
-   **97 passed** (mesuré le 28/10 ; les 86 d'avant dataient d'avant
-   `tests/test_web.py`). Un dépôt dont les tests sont rouges se voit.
+4. **Relancer `python submission/compter.py`** avant le dépôt. Il ne compte plus
+   seulement les champs : il lance la suite et compare le nombre de tests
+   annoncé ici et dans le README à celui qui passe réellement. Le chiffre a
+   bougé trois fois en deux jours (86 → 97 → 114) et les deux fichiers ne
+   l'ont pas suivi ensemble ; c'est le genre de vérification qu'on oublie
+   précisément la veille d'une échéance.
 5. **Rouvrir chaque champ après envoi.** Un formulaire tronqué par une coupure
    s'envoie sans erreur visible.
