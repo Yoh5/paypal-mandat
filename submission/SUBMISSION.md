@@ -18,7 +18,7 @@ un prix partenaire.
 | **Best Use of PayPal + AI** | À cocher. L'intégration est centrale par construction, pas collée. |
 | **Best Demo Delivery** | À cocher. La vidéo est faite, sous-titrée, et chaque chiffre y est exécuté. |
 | Most Impactful / Most Creative | À cocher aussi : ça ne coûte rien et le jury trie. |
-| **Render (prix partenaire)** | ⚠️ **PAS acquis.** Ce dépôt ne déploie nulle part — aucun `render.yaml`. Revendiquer Render sans déployer serait creux. Soit on déploie une démo web avant le 12, soit on ne coche pas. |
+| **Render (prix partenaire)** | **À portée, pas encore acquis.** `render.yaml` (Blueprint, plan gratuit, Francfort, `/health`) et `mandat/web.py` existent et tournent — vérifié en local le 28/10 : `/health` rend 200 en 10 ms, le refus affiche « 89,90 requested, 40,00 allowed », l'autorisation passe, une saisie absurde ne casse rien. Il manque **le déploiement lui-même** et la variable `DEMO_URL`. Tant que l'URL n'existe pas, ne pas cocher. |
 
 ---
 
@@ -173,10 +173,11 @@ sha256, json, llm-agents, owasp-llm-top-10, apache-2.0
 
 ## À faire avant de déposer
 
-1. **Mettre la vidéo en ligne** et coller le lien dans « Video demo link ».
-   Téléverser aussi `mandat-demo.en.srt` dans l'onglet sous-titres — les
-   montants sont le cœur de la démonstration et la reconnaissance automatique
-   les écrira faux.
+1. ~~**Mettre la vidéo en ligne**~~ — **FAIT le 28/10** :
+   `https://youtu.be/zPNiNpsnENw`, lien vérifié par requête et non collé de
+   confiance (commit `b83316c`). **Reste à téléverser `mandat-demo.en.srt`
+   dans l'onglet sous-titres de YouTube** — les montants sont le cœur de la
+   démonstration et la reconnaissance automatique les écrira faux.
 2. **Vérifier que le dépôt est bien public** : `curl -o /dev/null -w "%{http_code}"
    https://github.com/Yoh5/paypal-mandat` doit rendre **200**.
 3. **Décider pour Render** : déployer une démo web avant le 12, ou ne pas cocher
@@ -198,6 +199,7 @@ sha256, json, llm-agents, owasp-llm-top-10, apache-2.0
    réduit le risque sans l'annuler. La description dit le chiffre mesuré au lieu
    de laisser croire le contraire.
 4. **Relancer la suite** avant le dépôt : `python -m pytest tests -q` doit dire
-   **86 passed**. Un dépôt dont les tests sont rouges se voit.
+   **97 passed** (mesuré le 28/10 ; les 86 d'avant dataient d'avant
+   `tests/test_web.py`). Un dépôt dont les tests sont rouges se voit.
 5. **Rouvrir chaque champ après envoi.** Un formulaire tronqué par une coupure
    s'envoie sans erreur visible.
