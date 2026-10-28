@@ -37,7 +37,7 @@ A spend mandate an agent cannot cross. Caps are enforced by code before the PayP
 ## Video demo link
 
 ```
-<coller le lien YouTube>
+https://youtu.be/zPNiNpsnENw
 ```
 
 Titre déposé sur YouTube : *Refused before PayPal is called — a spend mandate
