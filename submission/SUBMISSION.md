@@ -18,7 +18,7 @@ un prix partenaire.
 | **Best Use of PayPal + AI** | À cocher. L'intégration est centrale par construction, pas collée. |
 | **Best Demo Delivery** | À cocher. La vidéo est faite, sous-titrée, et chaque chiffre y est exécuté. |
 | Most Impactful / Most Creative | À cocher aussi : ça ne coûte rien et le jury trie. |
-| **Render (prix partenaire)** | **À portée, pas encore acquis.** `render.yaml` (Blueprint, plan gratuit, Francfort, `/health`) et `mandat/web.py` existent et tournent — vérifié en local le 28/10 : `/health` rend 200 en 10 ms, le refus affiche « 89,90 requested, 40,00 allowed », l'autorisation passe, une saisie absurde ne casse rien. Il manque **le déploiement lui-même** et la variable `DEMO_URL`. Tant que l'URL n'existe pas, ne pas cocher. |
+| **Render (prix partenaire)** | **ACQUIS — à cocher.** Déployé et vérifié en ligne le 28/10 : `https://spend-mandate-demo.onrender.com`, `/health` rend 200, le refus affiche « 89,90 requested, 40,00 allowed » depuis le vrai service. `DEMO_URL` est posée. Seule réserve, dite dans la description : **22,6 s de démarrage à froid** mesurées. |
 
 ---
 
@@ -47,8 +47,19 @@ répliques, calées sur les durées mesurées).
 ## Try it out links
 
 ```
+https://spend-mandate-demo.onrender.com
 https://github.com/Yoh5/paypal-mandat
 ```
+
+La page hébergée ne détient **aucun identifiant de paiement** : elle interroge
+`Porte.verifier()` seule, ce qui est possible parce qu'un refus n'appelle
+personne. Essayer 89,90 chez *The Corner Bookshop* : refusé contre un plafond
+de 40,00, avant tout appel.
+
+⚠️ **Démarrage à froid mesuré le 28/10/2026 : 22,6 s** (`/health`, plan gratuit
+Render, région Francfort), puis **0,33 s** une fois éveillée. Chiffre relevé par
+commande, pas estimé. À redire tel quel dans la description : un juré qui tombe
+sur l'attente doit l'avoir lue avant.
 
 ---
 
@@ -190,6 +201,21 @@ sha256, json, llm-agents, owasp-llm-top-10, apache-2.0
    - **mesurer** le démarrage à froid une fois en ligne
      (`curl -o /dev/null -w "%{time_total}" <url>` après 20 min de silence) et
      écrire le chiffre dans la description Devpost. Ne pas l'estimer.
+
+   ### Ce que keep-awake fait VRAIMENT sur ce dépôt — mesuré le 28/10/2026
+
+   `gh run list` donne trois exécutions : **01:34, 07:21, 14:16 UTC**. Soit
+   **5,78 h puis 6,91 h d'écart**, sur un `cron` qui demande toutes les dix
+   minutes. Avec une fenêtre de 50 minutes par exécution, la démo est tenue
+   éveillée **12 à 14 % du temps** — et les trois exécutions sont vertes.
+   La prédiction écrite dans l'en-tête du fichier se reproduit donc ici, à
+   l'identique.
+
+   **Conséquence pratique :** un juré a ~85 % de chances de tomber sur les
+   22,6 s de réveil. Si ça compte pour « Best Demo Delivery », la seule vraie
+   correction est un pinger **externe** (cron-job.org, UptimeRobot — gratuits,
+   et eux partent à l'heure dite) toutes les 10 minutes sur `/health` ;
+   GitHub Actions ne tiendra jamais cette promesse sur un dépôt public.
 
    ⚠️ **Et le dire comme c'est :** `keep-awake.yml` ne promet pas que la démo
    soit chaude quand un juré arrive. GitHub décide *quand* une exécution
