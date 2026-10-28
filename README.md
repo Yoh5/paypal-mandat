@@ -111,12 +111,34 @@ the previous one's, so it is the next record that denounces the substitution.
 That claim is not decoration — `test_un_faussaire_qui_recalcule_l_empreinte_est_quand_meme_pris`
 holds it down.
 
+## Try the refusal yourself
+
+```bash
+python -m mandat.web          # then open http://localhost:8000
+```
+
+Type an amount, watch where it stops. 30 passes. 90 does not.
+
+**This page holds no payment credentials and cannot move any money**, and that
+is a property of the product rather than a precaution bolted on: a refusal
+calls nobody, so the page asks `Porte.verifier()` for its decision and never
+reaches a provider. An amount the mandate allows is *reported*, not charged — a
+public page has no business holding payment credentials, and saying so beats
+pretending otherwise.
+
+`render.yaml` deploys it with no payment environment variables declared, which
+is not an oversight. A service that holds nothing has nothing to leak.
+
+It is a demonstration server, not a production one: `http.server` is
+single-process and never claimed otherwise. That is the price of keeping the
+promise above it — no runtime dependencies.
+
 ## Running it
 
 ```bash
 python -m mandat.demo                    # both scenes, onto runs/demo.jsonl
 pip install -r requirements.txt          # pytest, for the tests
-python -m pytest tests -q                # 86 tests
+python -m pytest tests -q                # 97 tests
 ```
 
 **There are no runtime dependencies.** The mandate, the gateway, the register

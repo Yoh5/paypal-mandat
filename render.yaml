@@ -1,0 +1,31 @@
+# La démo hébergée — et ce qu'elle ne tient volontairement pas.
+#
+# Aucune variable d'environnement de paiement n'est déclarée ici, et ce n'est
+# pas un oubli : la page n'appelle jamais de fournisseur. Elle interroge
+# `Porte.verifier()`, le contrôle seul, ce qui est possible parce qu'un refus
+# n'appelle personne. Un service qui ne détient rien n'a rien à faire fuiter.
+#
+# `buildCommand` ne fait rien parce qu'il n'y a rien à installer : le produit
+# est écrit contre la bibliothèque standard. `requirements.txt` n'existe que
+# pour pytest, qui n'a pas sa place en ligne.
+#
+# `healthCheckPath` pointe sur la route que `keep-awake.yml` interroge aussi.
+# Les deux servent la même chose par deux chemins : Render redémarre un service
+# qui ne répond plus, le workflow l'empêche de s'endormir — sans promettre
+# qu'il soit chaud quand un juré arrive, ce que la soumission dit avec le
+# chiffre mesuré.
+
+services:
+  - type: web
+    name: spend-mandate-demo
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: "echo 'no runtime dependencies'"
+    startCommand: "python -m mandat.web"
+    healthCheckPath: /health
+    envVars:
+      # Épinglé : une montée de version silencieuse chez l'hébergeur est une
+      # façon classique de casser un service un dimanche.
+      - key: PYTHON_VERSION
+        value: "3.12.7"
