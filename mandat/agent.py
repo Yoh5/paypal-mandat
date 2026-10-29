@@ -164,6 +164,34 @@ def fournisseur_disponible() -> str:
     return ""
 
 
+def _faire_confiance_au_systeme() -> None:
+    """Fait vérifier le TLS contre le magasin de l'OS plutôt que contre certifi.
+
+    Mesuré sur la machine de développement le 29/10/2026 : l'appel échouait en
+    `APIConnectionError`, et dessous se trouvait
+    `CERTIFICATE_VERIFY_FAILED: unable to get local issuer certificate`. Un
+    antivirus — **Avast Web/Mail Shield**, lu dans l'émetteur du certificat
+    présenté — déchiffre et re-signe les connexions sortantes. Sa racine est
+    installée dans le magasin Windows, donc le navigateur et `ssl` natif
+    passent ; mais les deux SDK vérifient via `httpx`, qui vérifie contre
+    **certifi**, où cette racine n'a aucune raison d'être.
+
+    `truststore` fait lire à Python le magasin du système. **La vérification
+    reste entière** : on change la liste des racines de confiance, on ne la
+    désactive pas. Un `verify=False` aurait « marché » et aurait transformé une
+    démonstration sur la contrainte des paiements en démonstration sur la façon
+    de contourner un contrôle.
+
+    Sans `truststore` installé, on n'empêche rien : l'appel sera tenté et
+    échouera comme avant, avec son message d'origine.
+    """
+    try:
+        import truststore
+    except ImportError:
+        return
+    truststore.inject_into_ssl()
+
+
 def _demander(fournisseur: str, modele: str, page: str, client: Any) -> str:
     """Un appel, et le texte brut qu'il rend. Aucun réessai, aucun repli.
 
@@ -173,6 +201,7 @@ def _demander(fournisseur: str, modele: str, page: str, client: Any) -> str:
     """
     if fournisseur == "openai":
         if client is None:
+            _faire_confiance_au_systeme()
             import openai
 
             client = openai.OpenAI(api_key=_depuis_env("OPENAI_API_KEY"))
@@ -184,6 +213,7 @@ def _demander(fournisseur: str, modele: str, page: str, client: Any) -> str:
         return reponse.choices[0].message.content or ""
 
     if client is None:
+        _faire_confiance_au_systeme()
         import anthropic
 
         client = anthropic.Anthropic()

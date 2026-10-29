@@ -2,6 +2,10 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .env
-runs/
+runs/*
+# Sauf la transcription de la scène D : c'est elle qui permet de rejouer la
+# scène sans clé, et le README le promet. Les registres de démo restent
+# éphémères, celle-ci est une pièce.
+!runs/lecture-piegee.json
 submission/video/_travail/
 submission/video/apercu/
