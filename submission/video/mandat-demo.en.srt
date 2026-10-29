@@ -65,63 +65,87 @@ cap checked after the call is not a cap,
 it is a report.
 
 15
-00:01:16,000 --> 00:01:21,027
+00:01:16,000 --> 00:01:21,223
+Now a hostile page. It gives no order: it
+says the item is discontinued, and that
+
+16
+00:01:21,223 --> 00:01:26,511
+someone else ships it now. The agent reads
+that correctly and proposes twenty nine
+
+17
+00:01:26,511 --> 00:01:31,219
+ninety nine to a different payee. The
+grounding check passes, because the
+
+18
+00:01:31,219 --> 00:01:36,572
+attacker wrote the number on the page. The
+cap passes, because twenty nine is under
+
+19
+00:01:36,572 --> 00:01:39,280
+forty. The merchant list is what stops it.
+
+20
+00:01:42,000 --> 00:01:47,027
 A refusal is written to the register
 exactly like a payment, because a log that
 
-16
-00:01:21,027 --> 00:01:26,117
+21
+00:01:47,027 --> 00:01:52,117
 only shows successes describes an agent
 that never tried anything forbidden. And
 
-17
-00:01:26,117 --> 00:01:30,889
+22
+00:01:52,117 --> 00:01:56,889
 if someone rewrites that file, the
 verifier does not answer that the log is
 
-18
-00:01:30,889 --> 00:01:32,416
+23
+00:01:56,889 --> 00:01:58,416
 fine. It names the line.
 
-19
-00:01:40,000 --> 00:01:44,708
+24
+00:02:06,000 --> 00:02:10,708
 What this is not. It does not stop a
 malicious agent: it constrains the path
 
-20
-00:01:44,708 --> 00:01:49,539
+25
+00:02:10,708 --> 00:02:15,539
 that goes through it. And out-of-register
 payments are not verified unless you
 
-21
-00:01:49,539 --> 00:01:54,432
+26
+00:02:15,539 --> 00:02:20,432
 supply a webhook log, because an empty
 list because nothing was searched is not
 
-22
-00:01:54,432 --> 00:01:56,848
+27
+00:02:20,432 --> 00:02:22,848
 an empty list because nothing is there.
 
-23
-00:01:57,848 --> 00:02:03,070
+28
+00:02:23,848 --> 00:02:29,070
 None of this is payment plumbing. PayPal
 already had idempotency keys, webhooks and
 
-24
-00:02:03,070 --> 00:02:08,041
+29
+00:02:29,070 --> 00:02:34,041
 refunds. What it did not have was the link
 between the money that moved and the
 
-25
-00:02:08,041 --> 00:02:11,816
+30
+00:02:34,041 --> 00:02:37,816
 reasoning that moved it. That link is what
 you just watched.
 
-26
-00:02:12,816 --> 00:02:19,436
-Eighty six tests, no runtime dependencies,
-Apache two point zero. The model reads.
+31
+00:02:38,816 --> 00:02:46,705
+121 tests, no runtime dependencies, Apache
+two point zero. The model reads. The code
 
-27
-00:02:19,436 --> 00:02:20,808
-The code decides.
+32
+00:02:46,705 --> 00:02:48,005
+decides.

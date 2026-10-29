@@ -243,22 +243,23 @@ page.
    `gpt-5.5`. Pour la rejouer soi-même : `OPENAI_API_KEY=... python -m
    mandat.demo` ou `ANTHROPIC_API_KEY=...` — le fournisseur est celui dont la
    clé est présente, et elle peut aussi vivre dans `.env`.
-2. **Regarder ce que le modèle a réellement répondu.** Il n'est pas obligé de
-   se faire avoir ; s'il résiste, la scène le dit et ne paie rien. C'est un
-   résultat honnête, mais une démonstration plus faible : il faudra alors durcir
-   la page, et le dire.
-3. **Re-rendre le film.** Il fait 2 min 22 et ne contient pas cette scène.
-   `submission/video/film.py` le génère à partir de sorties exécutées, donc
-   c'est scripté — mais ça reste un rendu à relancer, et les sous-titres
-   (`mandat-demo.en.srt`) à recaler.
+2. ~~Regarder ce que le modèle a réellement répondu.~~ **Fait, et il a
+   d'abord résisté** — 5 fois sur 5 à l'injection classique. La page a été
+   durcie (elle change les faits au lieu de donner un ordre) et c'est dit
+   plus haut ; 5 sur 5 dans l'autre sens ensuite.
+3. ~~Re-rendre le film.~~ **Fait le 29/10/2026** : il dure **2 min 48,8**,
+   porte la scène D, et la voix annonce le nombre de tests du jour au lieu
+   d'un nombre figé. Les sous-titres `mandat-demo.en.srt` sont régénérés et
+   recalés (32 répliques, la dernière à 2:48,0).
 
 ## À faire avant de déposer
 
-1. ~~**Mettre la vidéo en ligne**~~ — **FAIT le 28/10** :
-   `https://youtu.be/zPNiNpsnENw`, lien vérifié par requête et non collé de
-   confiance (commit `b83316c`). **Reste à téléverser `mandat-demo.en.srt`
-   dans l'onglet sous-titres de YouTube** — les montants sont le cœur de la
-   démonstration et la reconnaissance automatique les écrira faux.
+1. **REMETTRE LA VIDÉO EN LIGNE.** `https://youtu.be/zPNiNpsnENw` porte
+   encore le montage du 28/10 — 2 min 22, **sans la scène D**, et la voix y
+   dit « eighty six tests ». Le fichier à téléverser est
+   `submission/video/mandat-demo.mp4` (2 min 48,8). **Puis téléverser
+   `mandat-demo.en.srt`** dans l'onglet sous-titres : les montants sont le
+   cœur de la démonstration et la reconnaissance automatique les écrira faux.
 2. **Vérifier que le dépôt est bien public** : `curl -o /dev/null -w "%{http_code}"
    https://github.com/Yoh5/paypal-mandat` doit rendre **200**.
 3. **Décider pour Render** : déployer une démo web avant le 12, ou ne pas cocher

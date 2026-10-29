@@ -65,7 +65,10 @@ def main() -> int:
     blocs, n, t = [], 0, N.SILENCE_INITIAL
 
     for cle in N.NARRATION:
-        morceaux = repliques(N.NARRATION[cle])
+        # `N.texte` et non `N.NARRATION` : la seconde rend le gabarit, donc
+        # le sous-titre aurait affiché « {tests} tests ». Le texte dit, le
+        # texte sous-titré et le nombre à l'écran viennent du même endroit.
+        morceaux = repliques(N.texte(cle))
         total_car = sum(len(m) for m in morceaux) or 1
         # La fin de scène est du silence : une réplique trop courte peut y
         # mordre sans jamais empiéter sur la phrase suivante.
