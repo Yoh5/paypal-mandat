@@ -12,7 +12,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from mandat.agent import AucunModele, Lecture, graver, lire, rejouer
+from mandat.agent import (MODELES, AucunModele, Lecture,
+                          fournisseur_disponible, graver, lire, rejouer)
 from mandat.demo import (FournisseurInterdit, LECTURE_ENREGISTREE, MARCHAND,
                          PAGE_PIEGEE, scene_injection)
 from mandat.proposition import PropositionInfondee, fonder
@@ -212,3 +213,74 @@ def test_la_scene_tient_dans_un_terminal_cp1252(tmp_path):
     """Même règle que les autres scènes : ce qui ne s'affiche pas ne se filme pas."""
     _, sortie = _jouer(SUIVI, tmp_path)
     sortie.encode("cp1252")
+
+
+# --------------------------------------------------------------------------
+# Deux fournisseurs
+# --------------------------------------------------------------------------
+
+class ClientOpenAIFactice:
+    """La surface d'OpenAI qu'`agent.lire` touche, et rien de plus."""
+
+    def __init__(self, texte: str) -> None:
+        self.texte = texte
+        self.appels = 0
+        self.chat = SimpleNamespace(
+            completions=SimpleNamespace(create=self._create))
+
+    def _create(self, **kwargs):
+        self.appels += 1
+        self.dernier = kwargs
+        return SimpleNamespace(choices=[SimpleNamespace(
+            message=SimpleNamespace(content=self.texte))])
+
+
+def test_openai_rend_la_meme_proposition_qu_anthropic():
+    """La thèse ne tient pas à un fournisseur : le code décide des deux côtés."""
+    lecture = lire(PAGE_PIEGEE, fournisseur="openai",
+                   client=ClientOpenAIFactice(SUIVI), enregistrement=None)
+    assert lecture.propose.montant_centimes == 2999
+    assert lecture.propose.marchand == "Quick Supplies Ltd"
+    assert lecture.modele == MODELES["openai"]
+
+
+def test_openai_recoit_la_page_et_la_consigne():
+    client = ClientOpenAIFactice(SUIVI)
+    lire(PAGE_PIEGEE, fournisseur="openai", client=client, enregistrement=None)
+    roles = [m["role"] for m in client.dernier["messages"]]
+    assert roles == ["system", "user"]
+    assert client.dernier["messages"][1]["content"] == PAGE_PIEGEE
+
+
+def test_le_fournisseur_se_deduit_de_la_cle_presente(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "factice-pour-le-test")
+    assert fournisseur_disponible() == "openai"
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "factice-pour-le-test")
+    assert fournisseur_disponible() == "anthropic"
+
+
+def test_un_fournisseur_inconnu_leve_au_lieu_de_retomber_sur_un_autre():
+    """Une faute de frappe ne doit pas appeler silencieusement l'autre modèle,
+    ni facturer chez un fournisseur qu'on n'a pas choisi."""
+    with pytest.raises(ValueError, match="fournisseur inconnu"):
+        lire(PAGE_PIEGEE, fournisseur="mistral",
+             client=ClientOpenAIFactice(SUIVI), enregistrement=None)
+
+
+def test_le_message_d_erreur_nomme_les_deux_cles(tmp_path):
+    with pytest.raises(AucunModele) as pourquoi:
+        lire(PAGE_PIEGEE, enregistrement=tmp_path / "absent.json")
+    assert "ANTHROPIC_API_KEY" in str(pourquoi.value)
+    assert "OPENAI_API_KEY" in str(pourquoi.value)
+
+
+def test_une_cle_dans_dot_env_ne_reveille_pas_la_suite_de_tests():
+    """Le garde-fou de conftest, testé plutôt que supposé.
+
+    Sans lui, poser OPENAI_API_KEY dans `.env` suffisait à transformer chaque
+    `pytest` en appels facturés — et le test du cas « sans clé » en appel
+    réseau muet.
+    """
+    import os
+    assert os.environ.get("MANDAT_SANS_ENV")
+    assert fournisseur_disponible() == ""

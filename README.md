@@ -179,7 +179,7 @@ promise above it — no runtime dependencies.
 ```bash
 python -m mandat.demo                    # the four scenes, onto runs/demo.jsonl
 pip install -r requirements.txt          # pytest, for the tests
-python -m pytest tests -q                # 114 tests
+python -m pytest tests -q                # 120 tests
 ```
 
 **The product has no runtime dependencies.** The mandate, the gateway, the
@@ -187,20 +187,37 @@ register and the PayPal client are written against the standard library alone �
 `urllib`, `json`, `hashlib`, `base64`. A tool whose job is to constrain payments
 should not ask you to trust a dependency tree in order to do it.
 
-The one exception is `mandat/agent.py`, which needs the `anthropic` SDK to call
-a model in scene D, and the boundary is exactly where it belongs: **nothing in
+The one exception is `mandat/agent.py`, which needs a model SDK to call a
+model in scene D, and the boundary is exactly where it belongs: **nothing in
 the mandate, the gateway or the register imports it.** The agent depends on a
-dependency tree; the thing that constrains the agent does not. Install it only
-if you want to run that scene:
+dependency tree; the thing that constrains the agent does not.
+
+**Either provider runs the scene**, and that is part of the argument rather
+than a convenience: the claim is not that one particular model can be fooled,
+it is that the code decides whichever model reads the page. Each default is the
+most capable model of its provider, so the result cannot be dismissed with "a
+better model would have resisted". Install one SDK only if you want to run that
+scene:
 
 ```bash
-pip install anthropic            # scene D only
+pip install anthropic            # scene D, Anthropic   (claude-opus-5-5)
 export ANTHROPIC_API_KEY=...
+
+pip install openai               # scene D, OpenAI      (gpt-5.5)
+export OPENAI_API_KEY=...
 ```
 
-Without a key, scene D replays the transcript of a previous live run if there is
-one — saying on screen that it is a replay — and otherwise announces itself as
-not played. A number presented as measured has to have been measured.
+The provider is whichever key is present, and `lire(..., fournisseur=...)`
+forces it. The key may also sit in the git-ignored `.env` beside the PayPal
+credentials; no code path ever prints it.
+
+Without any key, scene D replays the transcript of a previous live run if there
+is one — saying on screen that it is a replay — and otherwise announces itself
+as not played. A number presented as measured has to have been measured.
+
+The test suite never calls a model and never spends anything: `tests/conftest.py`
+clears every provider variable and switches off the `.env` lookup, for **all**
+tests rather than the ones that look concerned.
 
 Scene A needs PayPal sandbox credentials, from the environment or from a local
 `.env` (which is git-ignored):

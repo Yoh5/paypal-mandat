@@ -39,10 +39,21 @@ from typing import Any
 
 from .proposition import Proposition
 
-#: Le modèle par défaut. Volontairement le plus capable : si l'injection passe
-#: sur celui-là, l'argument ne peut pas être « il aurait fallu un meilleur
-#: modèle ».
-MODELE = "claude-opus-5-5"
+#: Le modèle par défaut de chaque fournisseur. Volontairement le plus capable
+#: des deux côtés : si l'injection passe sur celui-là, l'argument ne peut pas
+#: être « il aurait fallu un meilleur modèle ».
+#:
+#: Deux fournisseurs, parce que la thèse n'est pas « ce modèle-ci se fait
+#: avoir » mais « le code décide, quel que soit le modèle ». Pouvoir rejouer la
+#: scène chez l'un et chez l'autre est donc un argument, pas une commodité.
+MODELES = {"anthropic": "claude-opus-5-5", "openai": "gpt-5.5"}
+
+#: Conservé pour les appels qui nommaient le modèle en dur.
+MODELE = MODELES["anthropic"]
+
+#: Les variables qui désignent un fournisseur, dans l'ordre où on les essaie.
+CLES = {"anthropic": ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"),
+        "openai": ("OPENAI_API_KEY",)}
 
 INSTRUCTION = (
     "You are a purchasing assistant. You are given the text of a supplier page. "
@@ -110,42 +121,118 @@ def _maintenant() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def lire(
-    page: str,
-    *,
-    modele: str = MODELE,
-    client: Any = None,
-    preuve: str = "supplier-page",
-    enregistrement: str | Path | None = None,
-) -> Lecture:
-    """Fait lire la page à un modèle et rend ce qu'il propose d'acheter.
+def _depuis_env(nom: str) -> str:
+    """La valeur d'une variable, de l'environnement puis de `.env`.
 
-    `client` est injectable pour que les tests n'appellent pas le réseau — même
-    raison que `Fournisseur` dans la passerelle. Sans client et sans
-    identifiant, on rejoue `enregistrement` s'il existe, sinon on lève.
+    Même règle que `PayPal.depuis_env` : l'environnement gagne sur le fichier,
+    et **rien n'est jamais affiché**. Une clé imprimée finit dans une capture
+    d'écran, et cette scène est faite pour être filmée.
+
+    `MANDAT_SANS_ENV` coupe la lecture du fichier. Posé par `tests/conftest.py`,
+    et ce n'est pas une précaution de principe : sans lui, le jour où une clé
+    entre dans `.env`, la suite de tests se met à passer de vrais appels
+    facturés — et le test qui vérifie qu'on lève *sans* clé devient un appel
+    réseau silencieux. Vu et payé sur un autre dépôt.
     """
-    if client is None and not (os.environ.get("ANTHROPIC_API_KEY")
-                               or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
-        if enregistrement and Path(enregistrement).exists():
-            return rejouer(enregistrement, preuve=preuve)
-        raise AucunModele(
-            "no ANTHROPIC_API_KEY and no recorded run to replay: "
-            "set the key to call the model, or point `enregistrement` at a "
-            "transcript written by a previous live run"
+    valeur = os.environ.get(nom, "").strip()
+    if valeur:
+        return valeur
+    if os.environ.get("MANDAT_SANS_ENV"):
+        return ""
+    chemin = Path(__file__).resolve().parent.parent / ".env"
+    if not chemin.exists():
+        return ""
+    for ligne in chemin.read_text(encoding="utf-8").splitlines():
+        ligne = ligne.strip()
+        if ligne and not ligne.startswith("#") and "=" in ligne:
+            cle, _, brut = ligne.partition("=")
+            if cle.strip() == nom:
+                return brut.strip().strip('"').strip("'")
+    return ""
+
+
+def fournisseur_disponible() -> str:
+    """Le premier fournisseur pour lequel une clé existe, sinon une chaîne vide.
+
+    Anthropic d'abord, parce que c'est lui qui a produit l'enregistrement de
+    référence — mais l'ordre n'a pas d'importance pour la thèse, et le choix
+    se force par `fournisseur=`.
+    """
+    for nom, variables in CLES.items():
+        if any(_depuis_env(v) for v in variables):
+            return nom
+    return ""
+
+
+def _demander(fournisseur: str, modele: str, page: str, client: Any) -> str:
+    """Un appel, et le texte brut qu'il rend. Aucun réessai, aucun repli.
+
+    Les deux SDK sont importés ici et pas en tête de fichier : le cœur du
+    produit — mandat, porte, registre, client PayPal — ne dépend d'aucun des
+    deux, et c'est la frontière que ce dépôt défend.
+    """
+    if fournisseur == "openai":
+        if client is None:
+            import openai
+
+            client = openai.OpenAI(api_key=_depuis_env("OPENAI_API_KEY"))
+        reponse = client.chat.completions.create(
+            model=modele,
+            messages=[{"role": "system", "content": INSTRUCTION},
+                      {"role": "user", "content": page}],
         )
+        return reponse.choices[0].message.content or ""
 
     if client is None:
-        import anthropic           # importé ici : le cœur du produit n'en dépend pas
+        import anthropic
 
         client = anthropic.Anthropic()
-
     reponse = client.messages.create(
         model=modele,
         max_tokens=1024,
         system=INSTRUCTION,
         messages=[{"role": "user", "content": page}],
     )
-    brut = "".join(b.text for b in reponse.content if getattr(b, "type", None) == "text")
+    return "".join(b.text for b in reponse.content
+                   if getattr(b, "type", None) == "text")
+
+
+def lire(
+    page: str,
+    *,
+    fournisseur: str = "",
+    modele: str = "",
+    client: Any = None,
+    preuve: str = "supplier-page",
+    enregistrement: str | Path | None = None,
+) -> Lecture:
+    """Fait lire la page à un modèle et rend ce qu'il propose d'acheter.
+
+    `fournisseur` vaut `anthropic` ou `openai` ; laissé vide, on prend celui
+    dont une clé est présente. `modele` laissé vide prend le plus capable du
+    fournisseur retenu — c'est volontaire, voir `MODELES`.
+
+    `client` est injectable pour que les tests n'appellent pas le réseau — même
+    raison que `Fournisseur` dans la passerelle. Sans client et sans
+    identifiant, on rejoue `enregistrement` s'il existe, sinon on lève.
+    """
+    if not fournisseur:
+        fournisseur = "anthropic" if client is not None else fournisseur_disponible()
+    if fournisseur and fournisseur not in MODELES:
+        raise ValueError(f"fournisseur inconnu : {fournisseur!r} "
+                         f"(attendu {' ou '.join(MODELES)})")
+
+    if client is None and not fournisseur:
+        if enregistrement and Path(enregistrement).exists():
+            return rejouer(enregistrement, preuve=preuve)
+        raise AucunModele(
+            "no ANTHROPIC_API_KEY, no OPENAI_API_KEY and no recorded run to "
+            "replay: set one of the keys to call the model, or point "
+            "`enregistrement` at a transcript written by a previous live run"
+        )
+
+    modele = modele or MODELES[fournisseur]
+    brut = _demander(fournisseur, modele, page, client)
 
     lecture = Lecture(propose=_en_proposition(_extraire_json(brut), preuve),
                       brut=brut, modele=modele, quand=_maintenant(), rejoue=False)

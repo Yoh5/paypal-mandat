@@ -214,10 +214,13 @@ touchent — vérifié : le service Render, qui n'installe rien, démarre toujou
 
 ### Ce qu'il reste à faire, et c'est à toi
 
-1. **Jouer la scène une fois avec une vraie clé** :
-   `ANTHROPIC_API_KEY=... python -m mandat.demo`. Elle écrit la transcription
-   dans `runs/lecture-piegee.json`, ce qui permet ensuite de la rejouer sans
-   clé — en l'annonçant à l'écran comme un rejeu, jamais comme un appel.
+1. **Jouer la scène une fois avec une vraie clé** — l'une ou l'autre :
+   `OPENAI_API_KEY=... python -m mandat.demo` ou
+   `ANTHROPIC_API_KEY=... python -m mandat.demo`. Le fournisseur est celui dont
+   la clé est présente ; la clé peut aussi être posée dans `.env`. Elle écrit la
+   transcription dans `runs/lecture-piegee.json`, ce qui permet ensuite de la
+   rejouer sans clé — en l'annonçant à l'écran comme un rejeu, jamais comme un
+   appel.
 2. **Regarder ce que le modèle a réellement répondu.** Il n'est pas obligé de
    se faire avoir ; s'il résiste, la scène le dit et ne paie rien. C'est un
    résultat honnête, mais une démonstration plus faible : il faudra alors durcir
