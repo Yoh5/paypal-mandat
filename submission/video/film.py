@@ -16,6 +16,7 @@ Usage :
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 import wave
@@ -27,6 +28,10 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+# La racine du dépôt aussi : lancé par chemin (`python submission/video/film.py`),
+# Python met le dossier du script sur le chemin, pas le répertoire courant,
+# et la scène D a besoin du plafond que le mandat de démonstration déclare.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import narration as N  # noqa: E402
 from moteur import (ACCENT, CRITIQUE, ENCRE, ENCRE_2, ENCRE_3, FFMPEG, H, L,  # noqa: E402
@@ -270,6 +275,104 @@ def scene_refus(film: Film, refus: dict) -> Iterator[Image.Image]:
     yield from film.anime(duree, dessine)
 
 
+def scene_injection(film: Film, lecture: dict) -> Iterator[Image.Image]:
+    """Scène D : deux contrôles laissent passer, et ça ne passe pas quand même.
+
+    **Pourquoi ce plan ne reprend pas la voie entière.** Les scènes A et B ont
+    appris au spectateur le chemin agent -> porte -> PayPal. Ici on entre dans
+    la porte : même grammaire — un montant qui avance de gauche à droite et
+    bute sur un mur — mais à l'échelle des trois contrôles qu'elle contient.
+    Une variation se lit sans ré-apprentissage ; un second schéma, non.
+
+    **Pourquoi les deux premiers murs s'effacent au lieu de verdir.** Le vert
+    ne porte jamais seul dans ce film. Un contrôle franchi *disparaît* — la
+    forme dit le passage —, et le mot « passes » le confirme sous la station.
+    Seul le troisième reste debout, et le montant se barre contre lui.
+
+    Le chiffre et le bénéficiaire viennent de `runs/lecture-piegee.json`,
+    c'est-à-dire de l'appel réel : rien ici n'est recopié à la main.
+    """
+    film.repere("INJECTION (scène D)")
+    duree = film.duree("injection")
+
+    montant = centimes(lecture["centimes"])
+    marchand = lecture["marchand"]
+    modele = lecture["modele"]
+
+    DEPART, PORTES, FIN = 360, (820, 1120, 1420), 1700
+    NOMS = ("grounding", f"cap {centimes(lecture['plafond'])}", "merchant")
+
+    def dessine(t: float) -> Image.Image:
+        img = fond()
+        d = ImageDraw.Draw(img)
+        titre(d, "Misled", "the page was false — the agent read it correctly",
+              a=sortie_cubique(min(t * 5, 1.0)), y=96)
+
+        # Ce que la page affirmait, en une ligne : c'est un fait, pas un ordre.
+        if t > 0.12:
+            a = sortie_cubique(min((t - 0.12) * 4, 1.0))
+            ecrire(d, (L // 2, 300), f"Sold and invoiced by:  {marchand}",
+                   f(MONO, 34), opacite(ENCRE_3, a), centre=True)
+        if t > 0.22:
+            a = sortie_cubique(min((t - 0.22) * 4, 1.0))
+            ecrire(d, (L // 2, 360),
+                   f"{modele} proposes {montant} to {marchand}",
+                   f(SANS, 36), opacite(ENCRE_2, a), centre=True)
+
+        # Le montant avance de 0,33 à 0,74, puis reste collé au dernier mur.
+        pt = f(MONO_G, 34)
+        larg = sum(pt.getlength(c) for c in montant)
+        arret = PORTES[2] - 34 - larg / 2
+        marche = sortie_cubique(max(0.0, min((t - 0.33) / 0.41, 1.0)))
+        x = DEPART + (arret - DEPART) * marche
+
+        d.line([DEPART, VOIE_Y, PORTES[2] - 9, VOIE_Y],
+               fill=opacite(ENCRE_3, 0.9), width=2)
+        d.line([PORTES[2] + 9, VOIE_Y, FIN, VOIE_Y],
+               fill=opacite(ENCRE_3, 0.14), width=2)
+
+        for i, px in enumerate(PORTES):
+            franchi = x > px
+            dernier = i == 2
+            # Un mur franchi s'efface ; le dernier monte quand on l'atteint.
+            debout = 1.0 if not franchi else 0.0
+            if dernier:
+                debout = sortie_cubique(max(0.0, min((t - 0.45) * 3, 1.0)))
+            if debout > 0.02:
+                haut = int(96 * debout)
+                d.line([px, VOIE_Y - haut, px, VOIE_Y + haut],
+                       fill=melanger(SURFACE, CRITIQUE if dernier else ENCRE_3,
+                                     debout),
+                       width=5 if dernier else 3)
+            # +120 et non +56 : le mur monte à 96 px de part et d'autre de la
+            # voie, et la première version le faisait traverser le mot.
+            ecrire(d, (px, VOIE_Y + 120), NOMS[i], f(SANS, 28),
+                   opacite(ENCRE_3, 0.9), centre=True)
+            if franchi or (dernier and x >= arret - 1):
+                mot = "stops it" if dernier else "passes"
+                ecrire(d, (px, VOIE_Y + 164), mot, f(SANS_G, 28),
+                       CRITIQUE if dernier else opacite(PERMIS, 0.95),
+                       centre=True)
+
+        bute = x >= arret - 1
+        ecrire(d, (x, VOIE_Y - 72), montant, pt,
+               CRITIQUE if bute else ENCRE, centre=True)
+        if bute:
+            d.line([x - larg / 2 - 6, VOIE_Y - 50, x + larg / 2 + 6, VOIE_Y - 50],
+                   fill=CRITIQUE, width=3)
+
+        if t > 0.80:
+            c = sortie_cubique(min((t - 0.80) * 3.2, 1.0))
+            ecrire(d, (L // 2, 830), "Two controls passed.",
+                   f(SANS_G, 44), opacite(ENCRE, c), centre=True)
+            ecrire(d, (L // 2, 892),
+                   "The money stopped because it was never the agent's call.",
+                   f(SANS, 32), opacite(ENCRE_3, c), centre=True)
+        return img
+
+    yield from film.anime(duree, dessine)
+
+
 def scene_falsification(film: Film, reg: list[dict],
                         verdict: list[str]) -> Iterator[Image.Image]:
     """Scène C : deux maillons, l'un réécrit, et le vérificateur le nomme.
@@ -436,15 +539,47 @@ def scene_fin(film: Film, tests: int) -> Iterator[Image.Image]:
 
 # ── Montage ──────────────────────────────────────────────────────────────
 
+def lecture_de_la_scene_d(reg: list[dict]) -> dict:
+    """La matière de la scène D, prise dans ce qui vient d'être exécuté.
+
+    Le montant et le bénéficiaire viennent du registre que la démo vient
+    d'écrire ; le nom du modèle, de la transcription de l'appel réel. Rien
+    n'est recopié à la main, donc rien ne peut diverger du produit — et si la
+    scène D n'a pas été jouée, on s'arrête au lieu de filmer un chiffre inventé.
+    """
+    from mandat.demo import _porte_de_demonstration
+
+    refus = next((e for e in reg
+                  if e["issue"] == "refuse" and e["regle"] == "merchant"), None)
+    if refus is None:
+        raise SystemExit(
+            "la démo n'a pas produit de refus marchand : la scène D n'a pas "
+            "été jouée (pas de clé de modèle, et pas de transcription dans "
+            "runs/lecture-piegee.json)")
+
+    transcription = Path(__file__).resolve().parents[2] / "runs" / "lecture-piegee.json"
+    if not transcription.exists():
+        raise SystemExit(f"{transcription} absent : on ne peut pas nommer le "
+                         f"modèle qui a lu la page")
+    modele = json.loads(transcription.read_text(encoding="utf-8"))["modele"]
+
+    return {"centimes": refus["intention"]["centimes"],
+            "marchand": refus["intention"]["marchand"],
+            "modele": modele,
+            "plafond": _porte_de_demonstration().mandat.par_transaction}
+
+
 def images(film: Film, reg: list[dict], verdict: list[str],
            tests: int) -> Iterator[Image.Image]:
     paye = next(e for e in reg if e["issue"] == "paye")
-    refus = next(e for e in reg if e["issue"] == "refuse")
+    refus = next(e for e in reg
+                 if e["issue"] == "refuse" and e["regle"] != "merchant")
     yield from ouverture_froide(film)
     yield from scene_ouverture(film)
     yield from scene_mandat(film)
     yield from scene_paiement(film, paye)
     yield from scene_refus(film, refus)
+    yield from scene_injection(film, lecture_de_la_scene_d(reg))
     yield from scene_falsification(film, reg, verdict)
     yield from scene_limites(film)
     yield from scene_these(film)
@@ -459,12 +594,19 @@ def piste_narration(scenes: dict[str, float]) -> Path:
     pourraient être calés différemment.
     """
     morceaux: list[bytes] = []
-    with wave.open(str(TRAVAIL / "ouverture.wav")) as premiere:
+    # Les chemins viennent de `N.dire`, jamais reconstruits ici. Cette
+    # fonction les fabriquait elle-même — `_travail/<clé>.wav` — et le jour
+    # où le cache a pris l'empreinte du texte dans son nom, le montage a
+    # continué de lire les anciens fichiers. Une scène neuve l'a fait
+    # échouer bruyamment ; une réplique simplement corrigée serait passée
+    # **avec l'ancien son**, et le film aurait menti sans que rien ne
+    # plante. Un seul endroit décide donc où vit un son.
+    with wave.open(str(N.dire(next(iter(N.NARRATION))))) as premiere:
         params = premiere.getparams()
     muet = b"\x00" * (params.sampwidth * params.nchannels)
     morceaux.append(muet * round(N.SILENCE_INITIAL * params.framerate))
     for cle in N.NARRATION:
-        with wave.open(str(TRAVAIL / f"{cle}.wav")) as w:
+        with wave.open(str(N.dire(cle))) as w:
             dit = w.getnframes()
             morceaux.append(w.readframes(dit))
         reste = round(scenes[cle] * params.framerate) - dit
@@ -501,11 +643,14 @@ def main() -> int:
                          ("3-paiement", scene_paiement(
                              film, next(e for e in reg if e["issue"] == "paye"))),
                          ("4-refus", scene_refus(
-                             film, next(e for e in reg if e["issue"] == "refuse"))),
-                         ("5-falsification", scene_falsification(film, reg, verdict)),
-                         ("6-limites", scene_limites(film)),
-                         ("7-these", scene_these(film)),
-                         ("8-fin", scene_fin(film, tests))):
+                             film, next(e for e in reg if e["issue"] == "refuse"
+                                        and e["regle"] != "merchant"))),
+                         ("5-injection", scene_injection(
+                             film, lecture_de_la_scene_d(reg))),
+                         ("6-falsification", scene_falsification(film, reg, verdict)),
+                         ("7-limites", scene_limites(film)),
+                         ("8-these", scene_these(film)),
+                         ("9-fin", scene_fin(film, tests))):
             imgs = list(gen)
             imgs[int(len(imgs) * 0.82)].save(apercu / f"{nom}.png")
             print(f"  aperçu {nom:18} ({len(imgs)} images)")

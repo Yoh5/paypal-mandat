@@ -16,6 +16,8 @@ Usage:
 """
 from __future__ import annotations
 
+import functools
+import hashlib
 import subprocess
 import sys
 import wave
@@ -60,6 +62,18 @@ NARRATION: dict[str, str] = {
         "PayPal is never called. Not refunded, not reversed. Never called. "
         "A cap checked after the call is not a cap, it is a report.",
 
+    # La scène la plus forte du film, et la seule où un modèle réel intervient.
+    # Elle vient APRÈS « refus » parce qu'elle a besoin que le spectateur ait
+    # déjà vu un plafond arrêter quelque chose : tout son effet tient à ce
+    # qu'ici le plafond laisse passer.
+    "injection":
+        "Now a hostile page. It gives no order: it says the item is "
+        "discontinued, and that someone else ships it now. The agent reads "
+        "that correctly and proposes twenty nine ninety nine to a different "
+        "payee. The grounding check passes, because the attacker wrote the "
+        "number on the page. The cap passes, because twenty nine is under "
+        "forty. The merchant list is what stops it.",
+
     "falsification":
         "A refusal is written to the register exactly like a payment, because "
         "a log that only shows successes describes an agent that never tried "
@@ -82,15 +96,21 @@ NARRATION: dict[str, str] = {
         "the money that moved and the reasoning that moved it. That link is "
         "what you just watched.",
 
+    # Le nombre est interpolé au rendu, pas écrit ici : il a déjà bougé
+    # quatre fois (86, 97, 114, 121), et la voix disait encore
+    # quatre-vingt-six quand l'écran affichait cent-vingt-et-un. Un chiffre
+    # dit par la voix et un autre à l'image est la seule erreur qu'un jury
+    # ne pardonne pas.
     "fin":
-        "Eighty six tests, no runtime dependencies, Apache two point zero. "
+        "{tests} tests, no runtime dependencies, Apache two point zero. "
         "The model reads. The code decides.",
 }
 
 #: Le plancher de chaque scène : ce qu'il faut pour que le mouvement reste
 #: lisible même si la phrase est plus courte que le geste qu'elle décrit.
 MINIMA = {"ouverture": 8.0, "mandat": 15.0, "paiement": 20.0, "refus": 30.0,
-          "falsification": 24.0, "limites": 16.0, "these": 12.0, "fin": 10.0}
+          "injection": 26.0, "falsification": 24.0, "limites": 16.0,
+          "these": 12.0, "fin": 10.0}
 
 #: Une clé mal orthographiée dans MINIMA ne lèverait rien : la scène perdrait
 #: simplement son plancher et serait cadencée par la voix seule, ce qui ne se
@@ -108,15 +128,37 @@ SILENCE_INITIAL = 3.0
 TAIL = 1.0              # ce qui reste après la dernière syllabe
 
 
+@functools.lru_cache(maxsize=1)
+def _compte_de_tests() -> int:
+    """Le nombre de tests, compté une fois et partagé par la voix et l'image."""
+    from moteur import nombre_de_tests
+
+    return nombre_de_tests()
+
+
+def texte(cle: str) -> str:
+    """La réplique, nombres d'aujourd'hui compris."""
+    return NARRATION[cle].format(tests=_compte_de_tests())
+
+
 def dire(cle: str) -> Path:
-    """Rend la phrase, puis la convertit en wav pour pouvoir la mesurer."""
+    """Rend la phrase, puis la convertit en wav pour pouvoir la mesurer.
+
+    Le cache porte l'empreinte du **texte**, pas seulement la clé. Avec un cache
+    par clé, corriger une réplique ne regénérait rien : le film gardait l'ancien
+    son et personne ne s'en apercevait avant de le réécouter en entier. Le piège
+    s'est présenté en changeant « eighty six tests » en un nombre interpolé.
+    """
     TRAVAIL.mkdir(parents=True, exist_ok=True)
-    mp3, wav = TRAVAIL / f"{cle}.mp3", TRAVAIL / f"{cle}.wav"
+    phrase = texte(cle)
+    empreinte = hashlib.sha256(phrase.encode("utf-8")).hexdigest()[:10]
+    mp3 = TRAVAIL / f"{cle}-{empreinte}.mp3"
+    wav = TRAVAIL / f"{cle}-{empreinte}.wav"
     if not wav.exists():
         # `--rate=-6%` et non `--rate -6%` : argparse lit un débit négatif
         # comme une option courte.
         subprocess.run([sys.executable, "-m", "edge_tts", "--voice", VOIX,
-                        f"--rate={DEBIT}", "--text", NARRATION[cle],
+                        f"--rate={DEBIT}", "--text", phrase,
                         "--write-media", str(mp3)], check=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run([FFMPEG, "-y", "-i", str(mp3), "-ac", "1", "-ar", "48000",
