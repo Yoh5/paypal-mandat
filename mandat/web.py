@@ -148,7 +148,10 @@ def _page(v: dict[str, Any] | None, mandat: dict[str, Any]) -> str:
  <!-- Pas de nombre de tests ici : un chiffre tape dans un artefact publie
       vieillit des le commit suivant. Le README le porte, et lui est verifie. -->
  <a href="https://github.com/Yoh5/paypal-mandat">Code, tests, Apache-2.0</a>
- &middot; <a href="https://youtu.be/zPNiNpsnENw">2 min demo</a>
+ <!-- Le lien de la video change a chaque remise en ligne : YouTube ne
+      remplace pas le fichier d'une video, il en cree une autre. Trois
+      endroits portent cette URL — ici, le dossier, et la fiche Devpost. -->
+ &middot; <a href="https://youtu.be/zPNiNpsnENw">3 min demo</a>
 </footer>
 </main></body></html>"""
 

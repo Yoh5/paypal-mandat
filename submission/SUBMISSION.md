@@ -41,8 +41,47 @@ https://youtu.be/zPNiNpsnENw
 ```
 
 Titre déposé sur YouTube : *Refused before PayPal is called — a spend mandate
-for AI agents*. Sous-titres : `submission/video/mandat-demo.en.srt` (27
-répliques, calées sur les durées mesurées).
+for AI agents*. Sous-titres : `submission/video/mandat-demo.en.srt` (**32**
+répliques, calées sur les durées mesurées du montage de 2 min 48,8).
+
+> **L'URL ci-dessus est celle de l'ancien montage** (2 min 22, sans la scène D,
+> voix annonçant « eighty six tests »). YouTube **ne remplace pas** le fichier
+> d'une vidéo : remettre le film en ligne crée une **nouvelle URL**. Trois
+> endroits la portent et devront être repris ensemble : ce bloc, le pied de la
+> démo web (`mandat/web.py`), et le formulaire Devpost. Passer l'ancienne en
+> « non répertoriée » évite qu'un juré tombe dessus.
+
+### Description à coller sous la vidéo
+
+```
+A spend mandate an agent cannot cross.
+
+The agent reads a supplier page and proposes a purchase. The mandate decides:
+a cap per transaction, a total cap, a validity window, a list of merchants —
+enforced by code BEFORE the PayPal call, never audited after. A refusal is
+written to the register exactly like a payment, and if someone edits that file
+the verifier names the altered line instead of reporting that the log is fine.
+
+0:03  An agent that buys things, and a payment that cannot be undone
+0:11  The mandate, enforced before the call
+0:26  A purchase that goes through — and what comes back from the reference
+0:46  A purchase that does not: PayPal is never called
+1:16  A hostile page. Grounding passes, the cap passes, the merchant list stops it
+1:42  The register, and a forged line the verifier names
+2:06  What this is not
+2:23  What PayPal already had, and what it did not
+2:38  The model reads. The code decides.
+
+Scene D is a live call to gpt-5.5 against a page that states false facts —
+the item is discontinued and ships from someone else. The model reads it
+correctly and proposes the wrong payee. It is not jailbroken, it is misled,
+and the money still does not move.
+
+Code, tests, Apache-2.0: https://github.com/Yoh5/paypal-mandat
+Live demo: https://spend-mandate-demo.onrender.com
+English subtitles are attached as a file, not auto-generated: the amounts are
+the point of the demonstration and speech recognition writes them wrong.
+```
 
 ## Try it out links
 
@@ -254,12 +293,22 @@ page.
 
 ## À faire avant de déposer
 
-1. **REMETTRE LA VIDÉO EN LIGNE.** `https://youtu.be/zPNiNpsnENw` porte
-   encore le montage du 28/10 — 2 min 22, **sans la scène D**, et la voix y
-   dit « eighty six tests ». Le fichier à téléverser est
-   `submission/video/mandat-demo.mp4` (2 min 48,8). **Puis téléverser
-   `mandat-demo.en.srt`** dans l'onglet sous-titres : les montants sont le
-   cœur de la démonstration et la reconnaissance automatique les écrira faux.
+1. **REMETTRE LA VIDÉO EN LIGNE**, et ce n'est pas qu'un fichier :
+   `https://youtu.be/zPNiNpsnENw` porte encore le montage du 28/10 — 2 min 22,
+   **sans la scène D**, et la voix y dit « eighty six tests ».
+
+   a. Téléverser `submission/video/mandat-demo.mp4` (2 min 48,8). **Nouvelle
+      vidéo = nouvelle URL** : YouTube ne remplace pas un fichier.
+   b. Coller la **description** préparée plus haut — celle en ligne décrit
+      l'ancien montage et n'a ni la scène D ni les bons horodatages.
+   c. Téléverser `mandat-demo.en.srt` dans l'onglet sous-titres : les montants
+      sont le cœur de la démonstration et la reconnaissance automatique les
+      écrira faux.
+   d. **Reporter la nouvelle URL à trois endroits** : le bloc « Video demo
+      link » ci-dessus, le pied de la démo web (`mandat/web.py`, qui est
+      déployé et pointe encore l'ancienne), et le formulaire Devpost.
+   e. Passer l'ancienne vidéo en **non répertoriée**, pour qu'aucun juré ne
+      tombe sur le montage périmé.
 2. **Vérifier que le dépôt est bien public** : `curl -o /dev/null -w "%{http_code}"
    https://github.com/Yoh5/paypal-mandat` doit rendre **200**.
 3. **Décider pour Render** : déployer une démo web avant le 12, ou ne pas cocher
