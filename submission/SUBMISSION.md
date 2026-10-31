@@ -37,19 +37,21 @@ A spend mandate an agent cannot cross. Caps are enforced by code before the PayP
 ## Video demo link
 
 ```
-https://youtu.be/zPNiNpsnENw
+https://youtu.be/1Z5QikT5FZE
 ```
 
-Titre déposé sur YouTube : *Refused before PayPal is called — a spend mandate
-for AI agents*. Sous-titres : `submission/video/mandat-demo.en.srt` (**32**
-répliques, calées sur les durées mesurées du montage de 2 min 48,8).
+**Mise en ligne le 31/10/2026**, vérifiée par requête : HTTP 200, titre
+« *Spend Mandate* ». C'est le montage de **2 min 48,8 avec la scène D**.
 
-> **L'URL ci-dessus est celle de l'ancien montage** (2 min 22, sans la scène D,
-> voix annonçant « eighty six tests »). YouTube **ne remplace pas** le fichier
-> d'une vidéo : remettre le film en ligne crée une **nouvelle URL**. Trois
-> endroits la portent et devront être repris ensemble : ce bloc, le pied de la
-> démo web (`mandat/web.py`), et le formulaire Devpost. Passer l'ancienne en
-> « non répertoriée » évite qu'un juré tombe dessus.
+> **Deux choses restent à faire sur YouTube**, et aucune n'est dans ce dépôt :
+>
+> 1. **Le titre est « Spend Mandate ».** L'ancienne version portait *Refused
+>    before PayPal is called — a spend mandate for AI agents*, qui dit ce que
+>    le film démontre. Un juré parcourt une liste de titres avant d'ouvrir
+>    quoi que ce soit ; deux mots génériques y perdent.
+> 2. **L'ancien montage est toujours public** (`zPNiNpsnENw`, vérifié HTTP
+>    200) : 2 min 22, sans la scène D, voix annonçant « eighty six tests ».
+>    Le passer en **non répertorié**.
 
 ### Description à coller sous la vidéo
 
@@ -293,22 +295,11 @@ page.
 
 ## À faire avant de déposer
 
-1. **REMETTRE LA VIDÉO EN LIGNE**, et ce n'est pas qu'un fichier :
-   `https://youtu.be/zPNiNpsnENw` porte encore le montage du 28/10 — 2 min 22,
-   **sans la scène D**, et la voix y dit « eighty six tests ».
-
-   a. Téléverser `submission/video/mandat-demo.mp4` (2 min 48,8). **Nouvelle
-      vidéo = nouvelle URL** : YouTube ne remplace pas un fichier.
-   b. Coller la **description** préparée plus haut — celle en ligne décrit
-      l'ancien montage et n'a ni la scène D ni les bons horodatages.
-   c. Téléverser `mandat-demo.en.srt` dans l'onglet sous-titres : les montants
-      sont le cœur de la démonstration et la reconnaissance automatique les
-      écrira faux.
-   d. **Reporter la nouvelle URL à trois endroits** : le bloc « Video demo
-      link » ci-dessus, le pied de la démo web (`mandat/web.py`, qui est
-      déployé et pointe encore l'ancienne), et le formulaire Devpost.
-   e. Passer l'ancienne vidéo en **non répertoriée**, pour qu'aucun juré ne
-      tombe sur le montage périmé.
+1. ~~Remettre la vidéo en ligne.~~ **FAIT le 31/10/2026** —
+   `https://youtu.be/1Z5QikT5FZE`, le montage de 2 min 48,8 avec la scène D,
+   vérifié par requête (HTTP 200). L'URL est reportée dans ce dossier et dans
+   le pied de la démo web. Restent les deux points YouTube signalés plus haut :
+   **renommer** la vidéo, et **passer l'ancienne en non répertoriée**.
 2. **Vérifier que le dépôt est bien public** : `curl -o /dev/null -w "%{http_code}"
    https://github.com/Yoh5/paypal-mandat` doit rendre **200**.
 3. **Décider pour Render** : déployer une démo web avant le 12, ou ne pas cocher

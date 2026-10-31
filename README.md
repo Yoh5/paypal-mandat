@@ -179,7 +179,7 @@ promise above it — no runtime dependencies.
 ```bash
 python -m mandat.demo                    # the four scenes, onto runs/demo.jsonl
 pip install -r requirements.txt          # pytest, for the tests
-python -m pytest tests -q                # 120 tests
+python -m pytest tests -q                # 121 tests
 ```
 
 **The product has no runtime dependencies.** The mandate, the gateway, the

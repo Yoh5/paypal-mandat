@@ -151,7 +151,7 @@ def _page(v: dict[str, Any] | None, mandat: dict[str, Any]) -> str:
  <!-- Le lien de la video change a chaque remise en ligne : YouTube ne
       remplace pas le fichier d'une video, il en cree une autre. Trois
       endroits portent cette URL — ici, le dossier, et la fiche Devpost. -->
- &middot; <a href="https://youtu.be/zPNiNpsnENw">3 min demo</a>
+ &middot; <a href="https://youtu.be/1Z5QikT5FZE">3 min demo</a>
 </footer>
 </main></body></html>"""
 
