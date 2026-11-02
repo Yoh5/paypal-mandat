@@ -97,10 +97,15 @@ La page hébergée ne détient **aucun identifiant de paiement** : elle interrog
 personne. Essayer 89,90 chez *The Corner Bookshop* : refusé contre un plafond
 de 40,00, avant tout appel.
 
-⚠️ **Démarrage à froid mesuré le 28/10/2026 : 22,6 s** (`/health`, plan gratuit
-Render, région Francfort), puis **0,33 s** une fois éveillée. Chiffre relevé par
-commande, pas estimé. À redire tel quel dans la description : un juré qui tombe
-sur l'attente doit l'avoir lue avant.
+⚠️ **Démarrage à froid mesuré : 22,6 s** (`/health`, plan gratuit Render, région
+Francfort), puis **0,3 s** une fois éveillée. Chiffre relevé par commande, pas
+estimé. À redire tel quel dans la description : un juré qui tombe sur l'attente
+doit l'avoir lue avant.
+
+Re-mesuré le **02/11/2026** après 3 h 50 de sommeil : **22,59 s** à froid, puis
+0,27 / 0,29 / 0,31 s sur trois appels suivants. Deux relevés à cinq jours
+d'écart donnent le même chiffre, donc 22,6 s n'était pas un accident de
+mesure — c'est le réveil de l'instance.
 
 ---
 
@@ -313,25 +318,36 @@ page.
      (`curl -o /dev/null -w "%{time_total}" <url>` après 20 min de silence) et
      écrire le chiffre dans la description Devpost. Ne pas l'estimer.
 
-   ### Ce que keep-awake fait VRAIMENT sur ce dépôt — mesuré le 28/10/2026
+   ### Ce que keep-awake fait VRAIMENT sur ce dépôt — 26 exécutions, relevé le 02/11/2026
 
-   `gh run list` donne trois exécutions : **01:34, 07:21, 14:16 UTC**. Soit
-   **5,78 h puis 6,91 h d'écart**, sur un `cron` qui demande toutes les dix
-   minutes. Avec une fenêtre de 50 minutes par exécution, la démo est tenue
-   éveillée **12 à 14 % du temps** — et les trois exécutions sont vertes.
-   La prédiction écrite dans l'en-tête du fichier se reproduit donc ici, à
-   l'identique.
+   Le premier relevé, le 28/10, portait sur **trois** exécutions et concluait
+   « 12 à 14 % du temps ». Avec **26** exécutions couvrant **126,8 h** (28/10
+   01:34 → 02/11 08:24 UTC), **toutes vertes**, le chiffre se resserre et
+   monte un peu :
 
-   **Conséquence pratique :** un juré a ~85 % de chances de tomber sur les
-   22,6 s de réveil. Si ça compte pour « Best Demo Delivery », la seule vraie
-   correction est un pinger **externe** (cron-job.org, UptimeRobot — gratuits,
-   et eux partent à l'heure dite) toutes les 10 minutes sur `/health` ;
-   GitHub Actions ne tiendra jamais cette promesse sur un dépôt public.
+   | | demandé | mesuré |
+   |---|---|---|
+   | écart entre exécutions | 10 min | **médiane 5 h 17**, moyenne 5 h 04 |
+   | plage des écarts | — | 2 h 47 à 7 h 07 |
+   | démo tenue éveillée | — | 20,8 h sur 126,8 h = **16,4 %** |
+
+   Donc la prédiction écrite dans l'en-tête du fichier se reproduit, mais
+   l'ancienne fourchette « trois à six heures » était trop étroite aux deux
+   bouts : le vrai intervalle observé est **2 h 47 à 7 h 07**.
+
+   **Conséquence pratique :** un juré a **~84 %** de chances de tomber sur les
+   22,6 s de réveil — l'estimation de 85 % tenait. Si ça compte pour « Best
+   Demo Delivery », la seule vraie correction est un pinger **externe**
+   (cron-job.org, UptimeRobot — gratuits, et eux partent à l'heure dite)
+   toutes les 10 minutes sur `/health` ; GitHub Actions ne tiendra jamais
+   cette promesse sur un dépôt public. **Non fait** : cela demande un compte
+   chez un tiers, donc c'est à toi, et c'est le seul geste qui ferait passer
+   la démo de 16 % à ~100 % de disponibilité à chaud.
 
    ⚠️ **Et le dire comme c'est :** `keep-awake.yml` ne promet pas que la démo
    soit chaude quand un juré arrive. GitHub décide *quand* une exécution
-   planifiée part — sur un dépôt public, les relevés montrent **trois à six
-   heures** d'écart, pas dix minutes. Le workflow tient donc le service éveillé
+   planifiée part — sur un dépôt public, 26 relevés montrent **2 h 47 à
+   7 h 07** d'écart, médiane 5 h 17, pas dix minutes. Le workflow tient donc le service éveillé
    **cinquante minutes par exécution** plutôt que de le piquer une fois, ce qui
    réduit le risque sans l'annuler. La description dit le chiffre mesuré au lieu
    de laisser croire le contraire.
