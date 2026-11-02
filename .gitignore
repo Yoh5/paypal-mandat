@@ -9,3 +9,8 @@ runs/*
 !runs/lecture-piegee.json
 submission/video/_travail/
 submission/video/apercu/
+
+# Environnements virtuels locaux. Non suivis et non ignorés, ils étaient un
+# `git add -A` distrait avant le dépôt.
+.venv/
+venv/
