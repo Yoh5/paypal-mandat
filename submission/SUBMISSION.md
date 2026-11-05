@@ -18,7 +18,7 @@ un prix partenaire.
 | **Best Use of PayPal + AI** | À cocher. L'intégration est centrale par construction, pas collée. |
 | **Best Demo Delivery** | À cocher. La vidéo est faite, sous-titrée, et chaque chiffre y est exécuté. |
 | Most Impactful / Most Creative | À cocher aussi : ça ne coûte rien et le jury trie. |
-| **Render (prix partenaire)** | **ACQUIS — à cocher.** Déployé et vérifié en ligne le 28/10 : `https://spend-mandate-demo.onrender.com`, `/health` rend 200, le refus affiche « 89,90 requested, 40,00 allowed » depuis le vrai service. `DEMO_URL` est posée. Seule réserve, dite dans la description : **22,6 s de démarrage à froid** mesurées. |
+| **Render (prix partenaire)** | **ACQUIS — à cocher.** Déployé et vérifié en ligne le 28/10 : `https://spend-mandate-demo.onrender.com`, `/health` rend 200, le refus affiche « 89,90 requested, 40,00 allowed » depuis le vrai service. `DEMO_URL` est posée. Seule réserve, désormais écrite dans la description : **22 à 33 s de démarrage à froid** selon la durée du sommeil — 22,6 s après ~4 h, 32,9 s après plus long. Trois relevés, pas un. |
 
 ---
 
@@ -97,15 +97,20 @@ La page hébergée ne détient **aucun identifiant de paiement** : elle interrog
 personne. Essayer 89,90 chez *The Corner Bookshop* : refusé contre un plafond
 de 40,00, avant tout appel.
 
-⚠️ **Démarrage à froid mesuré : 22,6 s** (`/health`, plan gratuit Render, région
-Francfort), puis **0,3 s** une fois éveillée. Chiffre relevé par commande, pas
-estimé. À redire tel quel dans la description : un juré qui tombe sur l'attente
+⚠️ **Démarrage à froid mesuré : 22 à 33 s** (`/health`, plan gratuit Render, région
+Francfort), puis **0,3 s** une fois éveillée. Chiffres relevés par commande, pas
+estimés. À redire tel quel dans la description : un juré qui tombe sur l'attente
 doit l'avoir lue avant.
 
 Re-mesuré le **02/11/2026** après 3 h 50 de sommeil : **22,59 s** à froid, puis
-0,27 / 0,29 / 0,31 s sur trois appels suivants. Deux relevés à cinq jours
-d'écart donnent le même chiffre, donc 22,6 s n'était pas un accident de
-mesure — c'est le réveil de l'instance.
+0,27 / 0,29 / 0,31 s sur trois appels suivants.
+
+**Troisième relevé le 05/11/2026, après un sommeil plus long : 32,85 s**, puis
+0,40 / 0,27 / 0,27 s. Donc 22,6 s n'était pas un accident de mesure, mais ce
+n'était pas non plus un plafond : **le réveil dépend de la profondeur du
+sommeil**. La description annonce donc la fourchette, pas le meilleur des
+trois relevés — sous-annoncer l'attente est exactement l'erreur que
+« Best Demo Delivery » sanctionne.
 
 ---
 
@@ -216,6 +221,17 @@ provider's own references can be supplied, out-of-register payments stop being
 an unverified gap and become a verified zero. After that, mandates issued per
 task rather than per agent, so a single compromised run cannot spend the whole
 budget.
+
+### One honest note about the hosted demo
+
+The free instance sleeps, and the first request wakes it. **That wake takes 22
+to 33 seconds** — 22.6 s measured after about four hours of sleep, 32.9 s after
+a longer one, across three readings taken on different days. Every request
+after that answers in roughly 0.3 s.
+
+The wait belongs to the host, not to the gate: a refusal is decided locally and
+calls nobody. I would rather you read the larger number here than discover it
+in front of a loading page.
 
 ---
 
@@ -335,8 +351,8 @@ page.
    l'ancienne fourchette « trois à six heures » était trop étroite aux deux
    bouts : le vrai intervalle observé est **2 h 47 à 7 h 07**.
 
-   **Conséquence pratique :** un juré a **~84 %** de chances de tomber sur les
-   22,6 s de réveil — l'estimation de 85 % tenait. Si ça compte pour « Best
+   **Conséquence pratique :** un juré a **~84 %** de chances de tomber sur le
+   réveil (**22 à 33 s**) — l'estimation de 85 % tenait. Si ça compte pour « Best
    Demo Delivery », la seule vraie correction est un pinger **externe**
    (cron-job.org, UptimeRobot — gratuits, et eux partent à l'heure dite)
    toutes les 10 minutes sur `/health` ; GitHub Actions ne tiendra jamais
