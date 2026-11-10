@@ -172,10 +172,12 @@ The mandate and the gateway came first and are fully testable without a single
 PayPal credential; the integration came after, once sandbox access was
 confirmed.
 
-The demo video is rendered by the product: `submission/video/` runs the real
-demo, reads the register it just wrote, executes the verifier on the tampered
-copy, and counts the test suite. Nothing in the film is typed. If the cap
-changes, the film changes with it.
+The demo video is a screen recording of the project running on the machine it
+was built for. The terminal plays `submission/video/tournage.py`, which calls the
+same `jouer()` as `python -m mandat.demo` and only slows the printing down: scene
+A places a real order in the PayPal sandbox, scene D replays the committed gpt-5.5
+transcript and says so on screen. Then Chrome tries the hosted demo on Render.
+Every verdict in it was printed by the code, none was written for the camera.
 
 ### Challenges I ran into
 
@@ -206,10 +208,9 @@ mandate check ever moved to after the call, the demo would not run slower, it
 would break and name the fault. The guarantee is not measured, it is
 indestructible.
 
-And the film never lets colour carry meaning alone: green against red measures
-ΔE 4.1 under deuteranopia. The refusal reads by form — the path stops, the
-figure is struck through, the link breaks, a cross lands — and colour only
-reinforces.
+And no verdict lets colour carry meaning alone: the terminal and the hosted
+page both write REFUSED or ALLOWED and name the rule that decided —
+per-transaction cap, merchant — so the outcome reads the same in monochrome.
 
 ### What I learned
 
