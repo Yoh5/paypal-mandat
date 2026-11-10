@@ -37,11 +37,17 @@ A spend mandate an agent cannot cross. Caps are enforced by code before the PayP
 ## Video demo link
 
 ```
-https://youtu.be/1Z5QikT5FZE
+https://youtu.be/JqNUvIYkp0U
 ```
 
-**Mise en ligne le 31/10/2026**, vérifiée par requête : HTTP 200, titre
-« *Spend Mandate* ». C'est le montage de **2 min 48,8 avec la scène D**.
+**Remplacée le 10/11/2026** après le message de Devpost : la vidéo « ne montrait
+pas le projet fonctionnant sur l'appareil ». L'ancien film (`1Z5QikT5FZE`, 2 min
+48,8) était dessiné image par image. Celle-ci est `submission/video/mandat-live.mp4`
+(1 min 57) : deux vraies captures d'écran — le terminal qui joue `tournage.py`
+(vrai paiement sandbox en scène A, scène D rejouée et annoncée comme telle), puis
+Chrome sur la démo Render. Titre YouTube vérifié par oEmbed : « *Spend Mandate —
+refused before PayPal is called (live run)* ». Ancienne vidéo à passer en non
+répertoriée.
 
 > **Deux choses restent à faire sur YouTube**, et aucune n'est dans ce dépôt :
 >
