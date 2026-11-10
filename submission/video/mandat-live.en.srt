@@ -1,0 +1,123 @@
+1
+00:00:00,500 --> 00:00:03,843
+This is Spend Mandate, running live on my machine.
+
+2
+00:00:03,893 --> 00:00:06,015
+An AI agent proposes a purchase.
+
+3
+00:00:06,065 --> 00:00:08,730
+Code decides whether the money may move.
+
+4
+00:00:09,600 --> 00:00:12,823
+Scene A pays for real, in the PayPal sandbox.
+
+5
+00:00:12,873 --> 00:00:17,988
+The agent read a bookshop page and chose A4 paper, for six euros forty.
+
+6
+00:00:18,038 --> 00:00:26,789
+The mandate allowed it, PayPal took the order, and from that single PayPal reference, the whole justification comes back.
+
+7
+00:00:26,839 --> 00:00:28,462
+The register is intact.
+
+8
+00:00:29,312 --> 00:00:29,845
+Scene B.
+
+9
+00:00:29,895 --> 00:00:34,069
+Now the agent proposes the printer, at eighty-nine ninety.
+
+10
+00:00:34,119 --> 00:00:37,711
+The price is real, so this is not a hallucination.
+
+11
+00:00:37,761 --> 00:00:41,062
+But the mandate caps a payment at forty euros.
+
+12
+00:00:41,112 --> 00:00:43,830
+Refused, before PayPal is ever called.
+
+13
+00:00:44,680 --> 00:00:45,250
+Scene D.
+
+14
+00:00:45,300 --> 00:00:47,186
+A poisoned supplier page.
+
+15
+00:00:47,236 --> 00:00:54,391
+GPT 5.5, replayed here from a recorded run, believed it, and proposed paying another company.
+
+16
+00:00:54,441 --> 00:00:55,708
+Grounding passes.
+
+17
+00:00:55,758 --> 00:00:56,870
+The cap passes.
+
+18
+00:00:56,920 --> 00:00:59,272
+The merchant allowlist refuses.
+
+19
+00:00:59,322 --> 00:01:02,990
+The model was wrong, and the money did not move.
+
+20
+00:01:05,650 --> 00:01:06,119
+Scene C.
+
+21
+00:01:06,169 --> 00:01:09,300
+Someone edits the register to cover their tracks.
+
+22
+00:01:09,350 --> 00:01:11,896
+The verifier does not call the log fine.
+
+23
+00:01:11,946 --> 00:01:14,168
+It names the line that was changed.
+
+24
+00:01:18,150 --> 00:01:22,158
+And this is the hosted demo on Render, which anyone can try.
+
+25
+00:01:22,208 --> 00:01:24,796
+Eighty-nine ninety: refused by the cap.
+
+26
+00:01:29,950 --> 00:01:32,732
+Twenty-five fifty: within the mandate.
+
+27
+00:01:38,250 --> 00:01:43,272
+Twenty-nine ninety-nine, to Quick Supplies: refused by the merchant rule.
+
+28
+00:01:43,322 --> 00:01:48,136
+This page holds no PayPal credentials, because a refusal calls nobody.
+
+29
+00:01:49,286 --> 00:01:53,312
+The code, the tests and the live demo are linked below.
+
+30
+00:01:53,362 --> 00:01:54,720
+The agent proposes.
+
+31
+00:01:54,770 --> 00:01:55,980
+The code decides.
