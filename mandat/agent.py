@@ -216,7 +216,11 @@ def _demander(fournisseur: str, modele: str, page: str, client: Any) -> str:
         _faire_confiance_au_systeme()
         import anthropic
 
-        client = anthropic.Anthropic()
+        # La clé est passée explicitement, comme pour OpenAI : `Anthropic()` ne
+        # lit que l'environnement du processus, alors que `fournisseur_disponible`
+        # a pu la trouver dans `.env`. Sans cela, la scène D annonçait Anthropic
+        # puis plantait en « Could not resolve authentication method ».
+        client = anthropic.Anthropic(api_key=_depuis_env("ANTHROPIC_API_KEY"))
     reponse = client.messages.create(
         model=modele,
         max_tokens=1024,
